@@ -110,4 +110,4 @@ MIT License - Free for personal and commercial use.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Feel free to submit issues and pull requests.
+Contributions are welcome! Feel free to submit issues and pull requests. 
