@@ -1,6 +1,8 @@
-# Negotium
+# Negotium - Minimalist To Do App
 
 A beautiful, minimal to-do list application featuring smooth animations, intelligent date management, and a modern design that helps you stay organized and productive.
+
+![Negotium Screenshot](assets/screenshot.png)
 
 ## 💭 Why Negotium?
 
