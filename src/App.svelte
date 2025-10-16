@@ -15,6 +15,7 @@
   let selectedDate = new Date().toDateString();
   let draggedItem = null;
   let draggedOverIndex = null;
+  let currentDateDisplay = '';
 
   function addTask() {
     if (newTask.trim()) {
@@ -85,13 +86,16 @@
     draggedOverIndex = null;
   }
 
-  function getCurrentDate() {
-    return new Date().toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
+  $: {
+    currentDateDisplay = (() => {
+      const date = new Date(selectedDate);
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    })();
   }
 
   function getDateKey(dateString) {
@@ -282,7 +286,7 @@
     <div class="container">
       <div class="content-header">
         <h2 class="section-title">To-dos</h2>
-        <div class="date-display">{getCurrentDate()}</div>
+        <div class="date-display">{currentDateDisplay}</div>
       </div>
 
       <div class="task-input-container">
