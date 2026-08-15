@@ -17,6 +17,7 @@ Built with Svelte for speed and simplicity. No overwhelming features, no endless
 - ↩️ **Undo** - `Cmd/Ctrl+Z` brings back a deleted task, in its original position
 - 📅 **Today & Tomorrow lists** - Plan ahead with separate task lists
 - 🔄 **Unfinished work carries over** - When a new day begins, tasks you didn't finish move to Today; completed ones are cleared away
+- ➡️ **Push a task to tomorrow** - Didn't get to it? Move it across without retyping it
 - 🎯 **Reorder by drag or keyboard** - Drag with a mouse, long-press and drag on touch, or use `Alt+↑`/`Alt+↓`
 - 💾 **Persistent storage** - All tasks saved locally in your browser
 - 📊 **Task statistics** - See how many tasks remain at a glance
@@ -90,6 +91,7 @@ The date, storage, rollover, task and undo logic lives in `src/lib/` as plain mo
 - **Complete a task**: Click the checkbox next to the task
 - **Delete a task**: Click the delete icon on the task (it shows on hover, and is always visible on touch), or press `Delete` with the task focused
 - **Undo a delete**: Press `Cmd/Ctrl+Z`. The task returns to where it was
+- **Move a task to Tomorrow**: Click the arrow on the task, or press `Alt+→`. From Tomorrow, the arrow points back and `Alt+←` returns it to Today
 - **Reorder tasks**: Drag with a mouse, long-press then drag on touch, or focus a task and press `Alt+↑`/`Alt+↓`
 - **Clear input**: Press Escape while the input is focused
 
@@ -128,6 +130,7 @@ Import only ever adds. Tasks already present are left alone, so importing the sa
 - **Delete**: Delete the focused task
 - **Cmd/Ctrl+Z**: Undo the last delete or clear-completed
 - **Alt+↑ / Alt+↓**: Move the focused task up or down
+- **Alt+→ / Alt+←**: Send the focused task to Tomorrow, or bring it back to Today
 
 Backspace no longer deletes a task. It is too easily pressed by accident, and deletions used to be unrecoverable.
 

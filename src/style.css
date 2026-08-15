@@ -381,7 +381,7 @@ html.dark .task-item.dragging {
   color: var(--completed-text);
 }
 
-.delete-btn {
+.row-btn {
   width: 32px;
   height: 32px;
   border: none;
@@ -398,11 +398,16 @@ html.dark .task-item.dragging {
   flex-shrink: 0;
 }
 
+.defer-btn:hover {
+  background-color: var(--hover);
+  color: var(--accent);
+}
+
 /* focus-within matters as much as hover here: the button is opacity 0 by
    default, so a keyboard user tabbing to it previously saw nothing at all:
    the focus outline was drawn on an invisible element. */
-.task-item:hover .delete-btn,
-.task-item:focus-within .delete-btn {
+.task-item:hover .row-btn,
+.task-item:focus-within .row-btn {
   opacity: 1;
 }
 
@@ -412,7 +417,7 @@ html.dark .task-item.dragging {
   transform: scale(1.1);
 }
 
-.delete-btn svg {
+.row-btn svg {
   width: 16px;
   height: 16px;
 }
@@ -558,14 +563,14 @@ html.dark .data-status.error {
  * just easier to hit. Kept behind the media query so a mouse still gets small,
  * precise targets and the full row stays available to drag. */
 @media (hover: none) {
-  .delete-btn {
+  .row-btn {
     opacity: 1;
   }
 }
 
 @media (pointer: coarse) {
   .checkbox::after,
-  .delete-btn::after {
+  .row-btn::after {
     content: '';
     position: absolute;
     top: 50%;

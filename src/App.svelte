@@ -12,6 +12,7 @@
   import { createUndoStack, applyUndo } from './lib/undo.js';
   import { shouldHandleUndo } from './lib/shortcuts.js';
   import { buildExport, serialize, parseImport, mergeImport } from './lib/backup.js';
+  import { moveTaskToDay } from './lib/defer.js';
 
   const storage = createStorage();
   const undoStack = createUndoStack();
@@ -73,6 +74,15 @@
     if (removed.length === 0) return;
     undoStack.push({ type: 'clearCompleted', removed });
     setTasks(taskOps.clearCompleted(tasks));
+  }
+
+  const viewingToday = $derived(selectedKey === todayKey);
+
+  /** "Not today, tomorrow" and its reverse. Which direction depends only on
+   *  which day you are looking at, so one control covers both. */
+  function deferTask(taskId) {
+    const destination = viewingToday ? tomorrowKey() : todayKey;
+    tasks = moveTaskToDay(storage, selectedKey, destination, taskId);
   }
 
   function undo() {
@@ -183,6 +193,17 @@
     if (event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
       event.preventDefault();
       moveTask(taskId, event.key === 'ArrowUp' ? -1 : 1);
+      return;
+    }
+
+    // Right sends a task forward to Tomorrow, left brings it back. Only the
+    // one that makes sense from here does anything.
+    if (event.altKey && event.key === 'ArrowRight' && viewingToday) {
+      event.preventDefault();
+      deferTask(taskId);
+    } else if (event.altKey && event.key === 'ArrowLeft' && !viewingToday) {
+      event.preventDefault();
+      deferTask(taskId);
     }
   }
 
@@ -595,7 +616,26 @@
                 <span class="task-text">{task.text}</span>
                 
                 <button
-                  class="delete-btn"
+                  class="row-btn defer-btn"
+                  onclick={() => deferTask(task.id)}
+                  title={viewingToday ? 'Move to Tomorrow' : 'Move to Today'}
+                  aria-label={viewingToday ? `Move ${task.text} to Tomorrow` : `Move ${task.text} to Today`}
+                >
+                  {#if viewingToday}
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M13 6L19 12L13 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  {:else}
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M11 6L5 12L11 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  {/if}
+                </button>
+
+                <button
+                  class="row-btn delete-btn"
                   onclick={() => deleteTask(task.id)}
                   aria-label="Delete {task.text}"
                 >
