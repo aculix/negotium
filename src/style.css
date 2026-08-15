@@ -248,6 +248,7 @@ body {
 
 /* A real list, so screen readers announce item counts and position. */
 .task-items {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -294,13 +295,17 @@ html.dark .task-item.dragging {
     0 4px 8px rgba(0, 0, 0, 0.35);
 }
 
-/* Cards sliding aside to open the gap. */
-.task-item.drag-settling {
-  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
+/* The released card easing back into its slot. It keeps the raised z-index so
+   it stays above its neighbours on the way down, and supplies the transition
+   that the lifted state deliberately withheld. */
+.task-item.settling {
+  z-index: 20;
+  transition:
+    transform 240ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 240ms ease,
+    border-color 240ms ease;
 }
 
-/* A drag is in progress: suppress hover lift on the cards being displaced,
-   which would otherwise fight the transform that opens the gap. */
 .task-item:hover {
   background-color: var(--hover);
   transform: translateY(-2px);

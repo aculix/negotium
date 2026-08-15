@@ -1,5 +1,5 @@
 <script>
-  import { onMount, tick } from 'svelte';
+  import { onMount, tick, flushSync } from 'svelte';
   import { fly, fade } from 'svelte/transition';
   import { flip } from 'svelte/animate';
   import { cubicOut } from 'svelte/easing';
@@ -11,7 +11,6 @@
   import * as taskOps from './lib/tasks.js';
   import { createUndoStack, applyUndo } from './lib/undo.js';
   import { shouldHandleUndo } from './lib/shortcuts.js';
-  import { displacement } from './lib/drag.js';
 
   const storage = createStorage();
   const undoStack = createUndoStack();
@@ -31,10 +30,10 @@
   let isInitialized = false;
   let todayKey = $state(toKey(bootNow));
   let selectedKey = $state(toKey(bootNow));
-  let draggedItem = $state(null);
-  let draggedOverIndex = $state(null);
+  let draggedId = $state(null);
+  let settlingId = $state(null);
   let dragOffsetY = $state(0);
-  let dragShift = $state(0);
+  let settleTimer = null;
   let midnightTimer = null;
 
   /** Single write path, so persistence cannot drift out of step with the list.
@@ -126,6 +125,7 @@
   // and lets the page scroll normally.
   const DRAG_THRESHOLD_PX = 8;
   const LONG_PRESS_MS = 400;
+  const SETTLE_MS = 240;
 
   let drag = null;
 
@@ -136,27 +136,18 @@
   function beginDrag() {
     if (!drag || drag.active) return;
     drag.active = true;
-    draggedItem = drag.index;
-    draggedOverIndex = drag.index;
+    draggedId = drag.id;
     dragOffsetY = 0;
 
-    // Snapshot the slot geometry before anything is transformed, and store it
-    // relative to the list so page scrolling during a drag stays harmless.
-    //
-    // Measuring live rects instead would feed the drag back into itself: the
-    // shift transforms move the very midpoints used to pick the target, so the
-    // choice would oscillate between two slots.
-    const list = drag.row.parentElement;
-    const listTop = list.getBoundingClientRect().top;
-    drag.slots = [...list.children].map(child => {
-      const rect = child.getBoundingClientRect();
-      return { top: rect.top - listTop, height: rect.height };
-    });
+    // Layout position of the row, which offsetTop reports free of any
+    // transform. It is the fixed reference the pointer offset is measured
+    // against, and it stays correct as the row changes slots mid-drag.
+    drag.originTop = drag.row.offsetTop;
 
-    // The space a lifted card vacates is its own height plus one gap, so that
-    // is exactly how far the cards it displaces need to travel.
-    const gap = parseFloat(getComputedStyle(list).rowGap) || 0;
-    dragShift = drag.slots[drag.index].height + gap;
+    // A settling card from a previous drop must not keep its transition, or
+    // it would fight the new gesture.
+    clearTimeout(settleTimer);
+    settlingId = null;
 
     try {
       drag.row.setPointerCapture(drag.pointerId);
@@ -182,42 +173,39 @@
     }
 
     drag = null;
-    draggedItem = null;
-    draggedOverIndex = null;
+    draggedId = null;
     dragOffsetY = 0;
   }
 
   /**
-   * Per-row styling during a drag.
+   * Inline styling for the one row the pointer is carrying.
    *
-   * The lifted card stays fully opaque and tracks the pointer with no
-   * transition, so it feels attached to the finger or cursor. Every card
-   * between its origin and its destination slides by exactly the space the
-   * lifted card vacated, which opens a real gap where it will land — the gap
-   * is the drop indicator, so it is always accurate by construction.
+   * Only the lifted card is styled here. Everything else is moved by
+   * animate:flip, so exactly one mechanism owns `transform` per element —
+   * when both did, flip measured a "before" rect that already included a
+   * manual offset, computed a bogus delta, and slid the whole list on drop.
+   *
+   * The lifted card takes no transition, so it stays welded to the pointer.
+   * On release it keeps its transform but gains one via the settling class,
+   * which eases it into its slot instead of snapping.
    */
-  function rowStyle(index) {
-    if (draggedItem === null) return '';
-
-    if (index === draggedItem) {
-      return `transform: translateY(${dragOffsetY}px) scale(1.02) rotate(-0.4deg); transition: none;`;
-    }
-
-    const shift = displacement(index, draggedItem, draggedOverIndex, dragShift);
-    return `transform: translateY(${shift}px);`;
+  function rowStyle(taskId) {
+    if (taskId !== draggedId) return '';
+    return `transform: translateY(${dragOffsetY}px) scale(1.02) rotate(-0.4deg); transition: none;`;
   }
 
   function targetIndexFor(clientY) {
-    // Re-read the list top each time so scrolling mid-drag is accounted for,
-    // then compare against the untransformed slots captured at drag start.
-    const listTop = drag.row.parentElement.getBoundingClientRect().top;
-    const y = clientY - listTop;
+    const list = drag.row.parentElement;
+    // offsetTop and offsetHeight are layout values, unaffected by the
+    // transforms in play, so the target cannot feed back into itself.
+    const y = clientY - list.getBoundingClientRect().top;
+    const children = [...list.children];
 
-    for (let i = 0; i < drag.slots.length; i += 1) {
-      const slot = drag.slots[i];
-      if (y < slot.top + slot.height / 2) return i;
+    for (let i = 0; i < children.length; i += 1) {
+      const child = children[i];
+      if (y < child.offsetTop + child.offsetHeight / 2) return i;
     }
-    return drag.slots.length - 1;
+    return children.length - 1;
   }
 
   function handlePointerDown(event, index) {
@@ -226,7 +214,8 @@
     if (event.target.closest('button')) return;
 
     drag = {
-      index,
+      id: tasks[index].id,
+      originIndex: index,
       pointerId: event.pointerId,
       pointerType: event.pointerType,
       startY: event.clientY,
@@ -254,18 +243,45 @@
       if (!drag?.active) return;
     }
 
-    dragOffsetY = event.clientY - drag.startY;
-    draggedOverIndex = targetIndexFor(event.clientY);
+    // Reorder as the pointer crosses each boundary rather than waiting for the
+    // drop. animate:flip then eases the displaced card across, one swap at a
+    // time, and by release the list is already in its final order — so letting
+    // go changes nothing but the lifted card settling into place.
+    const from = tasks.findIndex(task => task.id === drag.id);
+    const to = targetIndexFor(event.clientY);
+
+    if (from !== -1 && to !== from) {
+      tasks = taskOps.reorderTask(tasks, from, to);
+      // Apply now, so the row's new offsetTop is readable on the next line.
+      flushSync();
+    }
+
+    // Measured against layout, so the card stays under the pointer even though
+    // the slot beneath it just changed.
+    dragOffsetY = (event.clientY - drag.startY) - (drag.row.offsetTop - drag.originTop);
   }
 
   function handlePointerUp() {
     if (!drag) return;
 
-    if (drag.active && draggedOverIndex !== null && draggedOverIndex !== drag.index) {
-      setTasks(taskOps.reorderTask(tasks, drag.index, draggedOverIndex));
-    }
+    const wasActive = drag.active;
+    const landedAt = tasks.findIndex(task => task.id === drag.id);
+    const settling = drag.id;
+
+    // The order is already correct — it was applied swap by swap during the
+    // drag — so this only writes it through to storage.
+    if (wasActive && landedAt !== drag.originIndex) setTasks(tasks);
 
     endDrag();
+
+    if (!wasActive) return;
+
+    // Clearing the inline transform while the settling class supplies a
+    // transition eases the card into its slot. Nothing else on the list moves,
+    // because nothing else changed.
+    settlingId = settling;
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(() => { settlingId = null; }, SETTLE_MS);
   }
 
   async function moveTask(taskId, offset) {
@@ -472,10 +488,10 @@
                 class="task-item"
                 data-task-id={task.id}
                 class:completed={task.completed}
-                class:dragging={draggedItem === index}
-                class:drag-settling={draggedItem !== null && draggedItem !== index}
-                style={rowStyle(index)}
-                animate:flip={{ duration: 220, easing: cubicOut }}
+                class:dragging={task.id === draggedId}
+                class:settling={task.id === settlingId}
+                style={rowStyle(task.id)}
+                animate:flip={{ duration: task.id === draggedId ? 0 : 240, easing: cubicOut }}
                 in:fly={{ y: -10, duration: 300, delay: index * 30, easing: cubicOut }}
                 out:fly={{ x: 30, opacity: 0, duration: 250, delay: index * 20, easing: cubicOut }}
                 onpointerdown={(e) => handlePointerDown(e, index)}
