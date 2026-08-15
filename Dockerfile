@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies with proper optional dependency handling for Alpine/musl
-RUN npm install --include=optional
+# Install from the committed lockfile so builds are reproducible
+RUN npm ci --include=optional
 
 # Copy source code
 COPY . .
