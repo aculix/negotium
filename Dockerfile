@@ -1,5 +1,14 @@
 # Build stage
-FROM node:20-alpine AS builder
+#
+# Pinned to the *build host's* architecture, not the target's. The output is
+# static HTML, CSS and JS — byte-identical whatever the image will eventually
+# run on — so emulating the target here buys nothing and costs a QEMU-emulated
+# npm install and bundle on every extra platform.
+#
+# It is also required for linux/arm/v7: Vite bundles with Rolldown, which ships
+# no 32-bit ARM musl binary, so `npm run build` cannot run inside that image at
+# all.
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -15,7 +24,7 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production stage
+# Production stage — this one is built per target platform.
 FROM nginx:alpine
 
 # Copy built files from builder stage
