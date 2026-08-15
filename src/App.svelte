@@ -9,6 +9,7 @@
   import { rollover, msUntilNextMidnight } from './lib/rollover.js';
   import * as taskOps from './lib/tasks.js';
   import { createUndoStack, applyUndo } from './lib/undo.js';
+  import { shouldHandleUndo } from './lib/shortcuts.js';
 
   const storage = createStorage();
   const undoStack = createUndoStack();
@@ -88,9 +89,7 @@
   }
 
   function handleGlobalKeydown(event) {
-    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'z') return;
-    // Leave the text field its own native undo.
-    if (event.target instanceof HTMLInputElement) return;
+    if (!shouldHandleUndo(event)) return;
     event.preventDefault();
     undo();
   }
