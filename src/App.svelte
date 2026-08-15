@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { fly, fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import './style.css';
@@ -95,33 +95,138 @@
     if (event.key === 'Delete') {
       event.preventDefault();
       deleteTask(taskId);
+      return;
+    }
+
+    // Reordering must not be pointer-only. The keyed each block moves the
+    // existing DOM node, so focus travels with the row.
+    if (event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+      event.preventDefault();
+      moveTask(taskId, event.key === 'ArrowUp' ? -1 : 1);
     }
   }
 
-  function handleDragStart(event, index) {
-    draggedItem = index;
-    event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/html', event.target);
+  // Reordering runs on Pointer Events rather than HTML5 drag-and-drop, which
+  // never fired on touch at all — so a documented feature was desktop-only.
+  //
+  // Touch and mouse need different entry conditions. A mouse drag begins once
+  // the pointer has moved past a small threshold. A touch drag cannot, because
+  // a vertical swipe on a list is far more likely to mean "scroll"; it begins
+  // on a long press instead, and any movement before that cancels the intent
+  // and lets the page scroll normally.
+  const DRAG_THRESHOLD_PX = 8;
+  const LONG_PRESS_MS = 400;
+
+  let drag = null;
+
+  function blockTouchScroll(event) {
+    event.preventDefault();
   }
 
-  function handleDragOver(event, index) {
-    event.preventDefault();
-    draggedOverIndex = index;
-  }
+  function beginDrag() {
+    if (!drag || drag.active) return;
+    drag.active = true;
+    draggedItem = drag.index;
+    draggedOverIndex = drag.index;
 
-  function handleDragEnd(event) {
-    event.preventDefault();
-    
-    if (draggedItem !== null && draggedOverIndex !== null && draggedItem !== draggedOverIndex) {
-      setTasks(taskOps.reorderTask(tasks, draggedItem, draggedOverIndex));
+    try {
+      drag.row.setPointerCapture(drag.pointerId);
+    } catch {
+      // Capture is an optimisation; the gesture still works without it.
     }
 
+    if (drag.pointerType !== 'mouse') {
+      // touch-action alone cannot stop a gesture already in flight.
+      document.addEventListener('touchmove', blockTouchScroll, { passive: false });
+    }
+  }
+
+  function endDrag() {
+    if (!drag) return;
+
+    clearTimeout(drag.timer);
+    document.removeEventListener('touchmove', blockTouchScroll);
+    try {
+      drag.row.releasePointerCapture(drag.pointerId);
+    } catch {
+      // Already released, or never captured.
+    }
+
+    drag = null;
     draggedItem = null;
     draggedOverIndex = null;
   }
 
-  function handleDragLeave() {
-    draggedOverIndex = null;
+  function targetIndexFor(clientY) {
+    const rows = [...drag.row.parentElement.children];
+    for (let i = 0; i < rows.length; i += 1) {
+      const rect = rows[i].getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) return i;
+    }
+    return rows.length - 1;
+  }
+
+  function handlePointerDown(event, index) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    // Let the checkbox and delete button have their clicks.
+    if (event.target.closest('button')) return;
+
+    drag = {
+      index,
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      startY: event.clientY,
+      row: event.currentTarget,
+      active: false,
+      timer: null,
+    };
+
+    if (event.pointerType !== 'mouse') {
+      drag.timer = setTimeout(beginDrag, LONG_PRESS_MS);
+    }
+  }
+
+  function handlePointerMove(event) {
+    if (!drag) return;
+
+    if (!drag.active) {
+      const moved = Math.abs(event.clientY - drag.startY);
+      if (drag.pointerType === 'mouse') {
+        if (moved > DRAG_THRESHOLD_PX) beginDrag();
+      } else if (moved > DRAG_THRESHOLD_PX) {
+        // Moved before the long press landed: this is a scroll, not a drag.
+        endDrag();
+      }
+      if (!drag?.active) return;
+    }
+
+    draggedOverIndex = targetIndexFor(event.clientY);
+  }
+
+  function handlePointerUp() {
+    if (!drag) return;
+
+    if (drag.active && draggedOverIndex !== null && draggedOverIndex !== drag.index) {
+      setTasks(taskOps.reorderTask(tasks, drag.index, draggedOverIndex));
+    }
+
+    endDrag();
+  }
+
+  async function moveTask(taskId, offset) {
+    const from = tasks.findIndex(task => task.id === taskId);
+    const to = from + offset;
+    if (from === -1 || to < 0 || to >= tasks.length) return;
+
+    setTasks(taskOps.reorderTask(tasks, from, to));
+
+    // Reconciling the keyed list drops focus, which would make Alt+Arrow a
+    // one-shot: the second press would land on nothing. Put it back on the
+    // task that moved so the key can be held down.
+    await tick();
+    const row = [...document.querySelectorAll('.task-item')]
+      .find(el => el.dataset.taskId === String(taskId));
+    row?.querySelector('.checkbox')?.focus();
   }
 
   function tomorrowKey() {
@@ -310,16 +415,16 @@
               <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
               <li
                 class="task-item"
+                data-task-id={task.id}
                 class:completed={task.completed}
                 class:dragging={draggedItem === index}
-                class:drag-over={draggedOverIndex === index}
-                draggable="true"
+                class:drag-over={draggedOverIndex === index && draggedItem !== index}
                 in:fly={{ y: -10, duration: 300, delay: index * 30, easing: cubicOut }}
                 out:fly={{ x: 30, opacity: 0, duration: 250, delay: index * 20, easing: cubicOut }}
-                ondragstart={(e) => handleDragStart(e, index)}
-                ondragover={(e) => handleDragOver(e, index)}
-                ondragend={handleDragEnd}
-                ondragleave={handleDragLeave}
+                onpointerdown={(e) => handlePointerDown(e, index)}
+                onpointermove={handlePointerMove}
+                onpointerup={handlePointerUp}
+                onpointercancel={endDrag}
                 onkeydown={(e) => handleTaskKeydown(e, task.id)}
               >
                 <button

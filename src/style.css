@@ -276,6 +276,10 @@ body {
 .task-item.dragging {
   opacity: 0.4;
   cursor: grabbing;
+  /* Only while a drag is actually in flight, so an ordinary touch on a row
+     still scrolls the page. */
+  touch-action: none;
+  user-select: none;
 }
 
 .task-item.drag-over::before {
