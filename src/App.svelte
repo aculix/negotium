@@ -84,6 +84,19 @@
     darkMode = !darkMode;
   }
 
+  // Svelte's transitions are driven in JavaScript, so the CSS media query in
+  // style.css cannot reach them. Read the same preference here and collapse the
+  // durations. The lift on a dragged card stays: it tracks the pointer rather
+  // than playing at you, and losing it would make dragging harder to follow.
+  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let reduceMotion = $state(motionQuery.matches);
+
+  const flyIn = (index) =>
+    reduceMotion ? { duration: 0 } : { y: -10, duration: 300, delay: index * 30, easing: cubicOut };
+
+  const flyOut = (index) =>
+    reduceMotion ? { duration: 0 } : { x: 30, opacity: 0, duration: 250, delay: index * 20, easing: cubicOut };
+
   let fileInput;
   let status = $state('');
   let statusIsError = $state(false);
@@ -399,6 +412,10 @@
     }, msUntilNextMidnight(new Date()));
   }
 
+  function handleMotionPreference(event) {
+    reduceMotion = event.matches;
+  }
+
   function handleVisibility() {
     if (document.visibilityState === 'visible') runRollover();
   }
@@ -426,11 +443,13 @@
     scheduleMidnight();
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', runRollover);
+    motionQuery.addEventListener('change', handleMotionPreference);
 
     return () => {
       clearTimeout(midnightTimer);
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', runRollover);
+      motionQuery.removeEventListener('change', handleMotionPreference);
     };
   });
 </script>
@@ -518,7 +537,7 @@
       <div class="task-list">
         {#key selectedKey}
           {#if tasks.length === 0}
-            <div class="empty-state" transition:fade={{ duration: 200 }}>
+            <div class="empty-state" transition:fade={{ duration: reduceMotion ? 0 : 200 }}>
               <svg class="empty-art" viewBox="0 0 120 120" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
                 <g class="empty-art-motes" stroke="currentColor" stroke-width="3" stroke-linecap="round">
                   <path d="M40 34 L40 34" />
@@ -550,9 +569,9 @@
                 class:dragging={task.id === draggedId}
                 class:settling={task.id === settlingId}
                 style={rowStyle(task.id)}
-                animate:flip={{ duration: task.id === draggedId ? 0 : 240, easing: cubicOut }}
-                in:fly={{ y: -10, duration: 300, delay: index * 30, easing: cubicOut }}
-                out:fly={{ x: 30, opacity: 0, duration: 250, delay: index * 20, easing: cubicOut }}
+                animate:flip={{ duration: (reduceMotion || task.id === draggedId) ? 0 : 240, easing: cubicOut }}
+                in:fly={flyIn(index)}
+                out:fly={flyOut(index)}
                 onpointerdown={(e) => handlePointerDown(e, index)}
                 onpointermove={handlePointerMove}
                 onpointerup={handlePointerUp}

@@ -4,6 +4,9 @@
   --text-primary: #1A1A1A;
   --text-secondary: #666666;
   --accent: #607afb;
+  /* Darker sibling of --accent for text. The brand blue reads 3.54:1 on the
+     light background, under the 4.5:1 needed for body-sized text. */
+  --accent-text: #4C5FD5;
   --border: #E0E0E0;
   --hover: #F5F5F5;
   --completed-bg: #EEF1FF;
@@ -18,6 +21,7 @@ html.dark {
   --text-primary: #E0E0E0;
   --text-secondary: #999999;
   --accent: #7B93FF;
+  --accent-text: #8FA5FF;
   --border: #333333;
   --hover: #2A2A2A;
   --completed-bg: rgba(96, 122, 251, 0.15);
@@ -177,7 +181,7 @@ body {
 .date-display {
   font-size: 16px;
   font-weight: 500;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .task-input-container {
@@ -261,7 +265,7 @@ body {
 
 .task-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   padding: 16px 20px;
   background-color: var(--bg-surface);
@@ -321,7 +325,6 @@ html.dark .task-item.dragging {
 
 .task-item.completed {
   background-color: var(--completed-bg);
-  opacity: 0.8;
 }
 
 .checkbox {
@@ -365,6 +368,9 @@ html.dark .task-item.dragging {
 .task-text {
   flex: 1;
   font-size: 16px;
+  /* 24px line box, the same height as the checkbox, so the two align on the
+     first line without nudging either. */
+  line-height: 1.5;
   color: var(--text-primary);
   transition: all 300ms ease;
   word-break: break-word;
@@ -379,6 +385,7 @@ html.dark .task-item.dragging {
   width: 32px;
   height: 32px;
   border: none;
+  position: relative;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -461,10 +468,22 @@ html.dark .task-item.dragging {
 }
 
 /* Decorative only, so respect a reduced-motion preference. */
+/* Svelte's transitions run in JavaScript and never see this query, so
+   App.svelte checks the same preference and zeroes its durations. This half
+   covers everything driven by CSS. */
 @media (prefers-reduced-motion: reduce) {
   .empty-art-box,
   .empty-art-motes path {
     animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -526,6 +545,47 @@ html.dark .task-item.dragging {
 
 html.dark .data-status.error {
   color: #ff8a8a;
+}
+
+/* Touch devices.
+ *
+ * The delete button is revealed on hover, which does not exist here. Without
+ * this it stays at zero opacity and a task cannot be deleted on a phone at
+ * all, which is what the README told people to do.
+ *
+ * The rest widens hit areas to the 44px minimum. The overlays are positioned
+ * so nothing moves: the controls keep the size they were drawn at, they are
+ * just easier to hit. Kept behind the media query so a mouse still gets small,
+ * precise targets and the full row stays available to drag. */
+@media (hover: none) {
+  .delete-btn {
+    opacity: 1;
+  }
+}
+
+@media (pointer: coarse) {
+  .checkbox::after,
+  .delete-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+
+  .today-btn,
+  .theme-toggle {
+    height: 44px;
+  }
+
+  .clear-completed,
+  .data-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
 }
 
 .visually-hidden {

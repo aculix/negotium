@@ -88,7 +88,7 @@ The date, storage, rollover, task and undo logic lives in `src/lib/` as plain mo
 ### Managing Tasks
 - **Add a task**: Type in the input field and press Enter
 - **Complete a task**: Click the checkbox next to the task
-- **Delete a task**: Hover over a task and click the delete icon, or press `Delete` with the task focused
+- **Delete a task**: Click the delete icon on the task (it shows on hover, and is always visible on touch), or press `Delete` with the task focused
 - **Undo a delete**: Press `Cmd/Ctrl+Z`. The task returns to where it was
 - **Reorder tasks**: Drag with a mouse, long-press then drag on touch, or focus a task and press `Alt+↑`/`Alt+↓`
 - **Clear input**: Press Escape while the input is focused
