@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import { fly, fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import lottie from 'lottie-web';
   import './style.css';
 
   import { toKey, addDays, fromKey, labelFor, formatLong } from './lib/dates.js';
@@ -14,8 +13,9 @@
 
   let tasks = $state([]);
   let newTask = $state('');
-  let darkMode = $state(false);
-  let isLoading = $state(true);
+  // Seeded from the class the pre-paint script in index.html already set, so
+  // there is one source of truth and no post-mount correction to flash.
+  let darkMode = $state(document.documentElement.classList.contains('dark'));
   let isInitialized = false;
   let todayKey = $state(toKey(new Date()));
   let selectedKey = $state(toKey(new Date()));
@@ -145,52 +145,15 @@
   const completedTasks = $derived(tasks.filter(task => task.completed).length);
 
   $effect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
     if (!isInitialized) return;
     storage.saveTheme(darkMode ? 'dark' : 'light');
   });
 
-  function initLottie(node) {
-    let instance = null;
-    
-    async function loadAnimation() {
-      try {
-        const response = await fetch('/lottie_empty_state.json');
-        const animationData = await response.json();
-        
-        instance = lottie.loadAnimation({
-          container: node,
-          renderer: 'svg',
-          loop: true,
-          autoplay: true,
-          animationData: animationData
-        });
-      } catch (error) {
-        console.error('Failed to load Lottie animation:', error);
-      }
-    }
-    
-    loadAnimation();
-    
-    return {
-      destroy() {
-        if (instance) {
-          instance.destroy();
-        }
-      }
-    };
-  }
-
   onMount(() => {
     storage.migrateLegacyKeys();
     runRollover();
-
-    const savedTheme = storage.loadTheme();
-    darkMode = savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    setTimeout(() => {
-      isLoading = false;
-      isInitialized = true;
-    }, 500);
+    isInitialized = true;
 
     // Four triggers, because no single one is sufficient. The timer covers a
     // pinned tab crossing midnight unattended; visibility and focus cover
@@ -209,21 +172,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="app" class:dark={darkMode}>
-  {#if isLoading}
-    <div class="loading-overlay" transition:fade={{ duration: 300 }}>
-      <div class="loading">
-        <svg class="loading-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12.37 8.87988H17.62" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M6.38 8.87988L7.13 9.62988L9.38 7.37988" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12.37 15.8799H17.62" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M6.38 15.8799L7.13 16.6299L9.38 14.3799" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <div class="loading-text">Loading Negotium...</div>
-      </div>
-    </div>
-  {:else}
+<div class="app">
   <header class="header">
     <div class="header-content">
       <div class="logo-section">
@@ -305,7 +254,20 @@
         {#key selectedKey}
           {#if tasks.length === 0}
             <div class="empty-state" transition:fade={{ duration: 200 }}>
-              <div class="lottie-animation" use:initLottie></div>
+              <svg class="empty-art" viewBox="0 0 120 120" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                <g class="empty-art-motes" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                  <path d="M40 34 L40 34" />
+                  <path d="M60 26 L60 26" />
+                  <path d="M80 34 L80 34" />
+                </g>
+                <g class="empty-art-box" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M30 58 L30 92 L90 92 L90 58" />
+                  <path d="M24 58 L96 58" />
+                  <path d="M30 58 L18 45" />
+                  <path d="M90 58 L102 45" />
+                  <path d="M48 74 L72 74" opacity="0.35" />
+                </g>
+              </svg>
               <p>No tasks yet. Add one above to get started!</p>
             </div>
           {:else}
@@ -361,5 +323,4 @@
       </div>
     </div>
   </main>
-  {/if}
 </div>

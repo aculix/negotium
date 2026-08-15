@@ -24,8 +24,5 @@
     "minimal"
   ],
   "author": "Negotium",
-  "license": "MIT",
-  "dependencies": {
-    "lottie-web": "^5.13.0"
-  }
+  "license": "MIT"
 }

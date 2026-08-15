@@ -3,7 +3,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte'
 
 export default defineConfig({
   plugins: [svelte()],
-  publicDir: 'assets',
+  publicDir: 'public',
   server: {
     port: 3000,
     open: true
