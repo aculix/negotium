@@ -5,38 +5,50 @@
   import lottie from 'lottie-web';
   import './style.css';
 
+  import { toKey, addDays, fromKey, labelFor, formatLong } from './lib/dates.js';
+  import { createStorage } from './lib/storage.js';
+  import { rollover, msUntilNextMidnight } from './lib/rollover.js';
+  import * as taskOps from './lib/tasks.js';
+
+  const storage = createStorage();
+
   let tasks = [];
   let newTask = '';
   let darkMode = false;
   let inputElement;
   let isLoading = true;
   let isInitialized = false;
-  let currentDate = new Date().toDateString();
-  let selectedDate = new Date().toDateString();
+  let todayKey = toKey(new Date());
+  let selectedKey = todayKey;
   let draggedItem = null;
   let draggedOverIndex = null;
-  let currentDateDisplay = '';
+  let midnightTimer = null;
+
+  /** Single write path, so persistence cannot drift out of step with the list.
+   *  Loading a different day assigns `tasks` directly and deliberately skips
+   *  this — there is nothing new to save. */
+  function setTasks(next) {
+    tasks = next;
+    if (isInitialized) storage.saveTasks(selectedKey, tasks);
+  }
 
   function addTask() {
-    if (newTask.trim()) {
-      tasks = [...tasks, {
-        id: Date.now(),
-        text: newTask.trim(),
-        completed: false,
-        createdAt: Date.now()
-      }];
-      newTask = '';
-    }
+    const next = taskOps.addTask(tasks, newTask);
+    if (next === tasks) return;
+    setTasks(next);
+    newTask = '';
   }
 
   function toggleTask(id) {
-    tasks = tasks.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    );
+    setTasks(taskOps.toggleTask(tasks, id));
   }
 
   function deleteTask(id) {
-    tasks = tasks.filter(task => task.id !== id);
+    setTasks(taskOps.deleteTask(tasks, id));
+  }
+
+  function clearCompleted() {
+    setTasks(taskOps.clearCompleted(tasks));
   }
 
   function toggleTheme() {
@@ -72,12 +84,9 @@
     event.preventDefault();
     
     if (draggedItem !== null && draggedOverIndex !== null && draggedItem !== draggedOverIndex) {
-      const newTasks = [...tasks];
-      const [movedTask] = newTasks.splice(draggedItem, 1);
-      newTasks.splice(draggedOverIndex, 0, movedTask);
-      tasks = newTasks;
+      setTasks(taskOps.reorderTask(tasks, draggedItem, draggedOverIndex));
     }
-    
+
     draggedItem = null;
     draggedOverIndex = null;
   }
@@ -86,89 +95,58 @@
     draggedOverIndex = null;
   }
 
-  $: {
-    currentDateDisplay = (() => {
-      const date = new Date(selectedDate);
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
-    })();
-  }
-
-  function getDateKey(dateString) {
-    return `negotium-tasks-${dateString}`;
-  }
-
-  function loadTasksForDate(dateString) {
-    const savedTasks = localStorage.getItem(getDateKey(dateString));
-    if (savedTasks) {
-      tasks = JSON.parse(savedTasks);
-    } else {
-      tasks = [];
-    }
-  }
-
-  function saveTasksForDate(dateString) {
-    localStorage.setItem(getDateKey(dateString), JSON.stringify(tasks));
-  }
-
-  function checkAndMigrateTasks() {
-    const today = new Date().toDateString();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayString = yesterday.toDateString();
-    
-    const yesterdayTasks = localStorage.getItem(getDateKey(yesterdayString));
-    if (yesterdayTasks && currentDate !== today) {
-      const tasks = JSON.parse(yesterdayTasks);
-      const todayTasks = localStorage.getItem(getDateKey(today));
-      
-      if (todayTasks) {
-        const existingTodayTasks = JSON.parse(todayTasks);
-        localStorage.setItem(getDateKey(today), JSON.stringify([...existingTodayTasks, ...tasks]));
-      } else {
-        localStorage.setItem(getDateKey(today), yesterdayTasks);
-      }
-      
-      localStorage.removeItem(getDateKey(yesterdayString));
-      currentDate = today;
-    }
+  function tomorrowKey() {
+    return toKey(addDays(fromKey(todayKey), 1));
   }
 
   function switchDate() {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    selectedDate = selectedDate === today.toDateString() 
-      ? tomorrow.toDateString() 
-      : today.toDateString();
-    
-    loadTasksForDate(selectedDate);
+    selectedKey = selectedKey === todayKey ? tomorrowKey() : todayKey;
+    tasks = storage.loadTasks(selectedKey);
   }
 
-  $: buttonText = (() => {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    if (selectedDate === today.toDateString()) return 'Today';
-    if (selectedDate === tomorrow.toDateString()) return 'Tomorrow';
-    return selectedDate.split(' ').slice(0, 3).join(' ');
-  })();
+  /**
+   * Re-evaluates the day boundary and reloads the visible list. Safe to call
+   * repeatedly — rollover is idempotent within a day.
+   *
+   * If the day changed while the user was looking at Today, they stay on the
+   * new Today. If they were looking at Tomorrow, that key has become Today and
+   * they follow it there, which preserves the existing mental model.
+   */
+  function runRollover() {
+    const now = new Date();
+    const wasViewingToday = selectedKey === todayKey;
+
+    todayKey = toKey(now);
+    const todayTasks = rollover(storage, now);
+
+    if (wasViewingToday) {
+      selectedKey = todayKey;
+      tasks = todayTasks;
+    } else {
+      tasks = storage.loadTasks(selectedKey);
+    }
+  }
+
+  function scheduleMidnight() {
+    clearTimeout(midnightTimer);
+    midnightTimer = setTimeout(() => {
+      runRollover();
+      scheduleMidnight();
+    }, msUntilNextMidnight(new Date()));
+  }
+
+  function handleVisibility() {
+    if (document.visibilityState === 'visible') runRollover();
+  }
+
+  $: currentDateDisplay = formatLong(selectedKey);
+  $: buttonText = labelFor(selectedKey, todayKey);
 
   $: remainingTasks = tasks.filter(task => !task.completed).length;
   $: completedTasks = tasks.filter(task => task.completed).length;
 
-  $: if (tasks && isInitialized) {
-    saveTasksForDate(selectedDate);
-  }
-
   $: if (darkMode !== undefined && isInitialized) {
-    localStorage.setItem('negotium-theme', darkMode ? 'dark' : 'light');
+    storage.saveTheme(darkMode ? 'dark' : 'light');
   }
 
   function initLottie(node) {
@@ -203,16 +181,29 @@
   }
 
   onMount(() => {
-    checkAndMigrateTasks();
-    loadTasksForDate(selectedDate);
+    storage.migrateLegacyKeys();
+    runRollover();
 
-    const savedTheme = localStorage.getItem('negotium-theme');
+    const savedTheme = storage.loadTheme();
     darkMode = savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     setTimeout(() => {
       isLoading = false;
       isInitialized = true;
     }, 500);
+
+    // Four triggers, because no single one is sufficient. The timer covers a
+    // pinned tab crossing midnight unattended; visibility and focus cover
+    // machine sleep, where timers do not reliably fire.
+    scheduleMidnight();
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', runRollover);
+
+    return () => {
+      clearTimeout(midnightTimer);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', runRollover);
+    };
   });
 </script>
 
@@ -305,14 +296,14 @@
           {remainingTasks} {remainingTasks === 1 ? 'task' : 'tasks'} remaining
         </span>
         {#if completedTasks > 0}
-          <button class="clear-completed" on:click={() => tasks = tasks.filter(task => !task.completed)}>
+          <button class="clear-completed" on:click={clearCompleted}>
             Clear completed
           </button>
         {/if}
       </div>
 
       <div class="task-list">
-        {#key selectedDate}
+        {#key selectedKey}
           {#if tasks.length === 0}
             <div class="empty-state" transition:fade={{ duration: 200 }}>
               <div class="lottie-animation" use:initLottie></div>
