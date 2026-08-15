@@ -12,16 +12,15 @@
 
   const storage = createStorage();
 
-  let tasks = [];
-  let newTask = '';
-  let darkMode = false;
-  let inputElement;
-  let isLoading = true;
+  let tasks = $state([]);
+  let newTask = $state('');
+  let darkMode = $state(false);
+  let isLoading = $state(true);
   let isInitialized = false;
-  let todayKey = toKey(new Date());
-  let selectedKey = todayKey;
-  let draggedItem = null;
-  let draggedOverIndex = null;
+  let todayKey = $state(toKey(new Date()));
+  let selectedKey = $state(toKey(new Date()));
+  let draggedItem = $state(null);
+  let draggedOverIndex = $state(null);
   let midnightTimer = null;
 
   /** Single write path, so persistence cannot drift out of step with the list.
@@ -139,15 +138,16 @@
     if (document.visibilityState === 'visible') runRollover();
   }
 
-  $: currentDateDisplay = formatLong(selectedKey);
-  $: buttonText = labelFor(selectedKey, todayKey);
+  const currentDateDisplay = $derived(formatLong(selectedKey));
+  const buttonText = $derived(labelFor(selectedKey, todayKey));
 
-  $: remainingTasks = tasks.filter(task => !task.completed).length;
-  $: completedTasks = tasks.filter(task => task.completed).length;
+  const remainingTasks = $derived(tasks.filter(task => !task.completed).length);
+  const completedTasks = $derived(tasks.filter(task => task.completed).length);
 
-  $: if (darkMode !== undefined && isInitialized) {
+  $effect(() => {
+    if (!isInitialized) return;
     storage.saveTheme(darkMode ? 'dark' : 'light');
-  }
+  });
 
   function initLottie(node) {
     let instance = null;
@@ -207,7 +207,7 @@
   });
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="app" class:dark={darkMode}>
   {#if isLoading}
@@ -238,7 +238,7 @@
       </div>
       
       <div class="header-actions">
-        <button class="today-btn" aria-label="Switch between Today and Tomorrow" on:click={switchDate}>
+        <button class="today-btn" aria-label="Switch between Today and Tomorrow" onclick={switchDate}>
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
             <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"/>
@@ -250,7 +250,7 @@
         
         <button 
           class="theme-toggle" 
-          on:click={toggleTheme}
+          onclick={toggleTheme}
           aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           <svg class="theme-icon" class:rotated={darkMode} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -282,12 +282,11 @@
 
       <div class="task-input-container">
         <input
-          bind:this={inputElement}
           bind:value={newTask}
           type="text"
           placeholder="+ Add a task"
           class="task-input"
-          on:keydown={handleKeydown}
+          onkeydown={handleKeydown}
         />
       </div>
 
@@ -296,7 +295,7 @@
           {remainingTasks} {remainingTasks === 1 ? 'task' : 'tasks'} remaining
         </span>
         {#if completedTasks > 0}
-          <button class="clear-completed" on:click={clearCompleted}>
+          <button class="clear-completed" onclick={clearCompleted}>
             Clear completed
           </button>
         {/if}
@@ -319,11 +318,11 @@
                 draggable="true"
                 in:fly={{ y: -10, duration: 300, delay: index * 30, easing: cubicOut }}
                 out:fly={{ x: 30, opacity: 0, duration: 250, delay: index * 20, easing: cubicOut }}
-                on:dragstart={(e) => handleDragStart(e, index)}
-                on:dragover={(e) => handleDragOver(e, index)}
-                on:dragend={handleDragEnd}
-                on:dragleave={handleDragLeave}
-                on:keydown={(e) => handleTaskKeydown(e, task.id)}
+                ondragstart={(e) => handleDragStart(e, index)}
+                ondragover={(e) => handleDragOver(e, index)}
+                ondragend={handleDragEnd}
+                ondragleave={handleDragLeave}
+                onkeydown={(e) => handleTaskKeydown(e, task.id)}
                 tabindex="0"
                 role="button"
                 aria-label={task.completed ? `Completed: ${task.text}` : `Incomplete: ${task.text}`}
@@ -331,7 +330,7 @@
                 <button 
                   class="checkbox" 
                   class:checked={task.completed}
-                  on:click={() => toggleTask(task.id)}
+                  onclick={() => toggleTask(task.id)}
                   aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
                 >
                   {#if task.completed}
@@ -345,7 +344,7 @@
                 
                 <button 
                   class="delete-btn" 
-                  on:click={() => deleteTask(task.id)}
+                  onclick={() => deleteTask(task.id)}
                   aria-label="Delete task"
                 >
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
