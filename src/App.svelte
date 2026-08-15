@@ -8,8 +8,10 @@
   import { createStorage } from './lib/storage.js';
   import { rollover, msUntilNextMidnight } from './lib/rollover.js';
   import * as taskOps from './lib/tasks.js';
+  import { createUndoStack, applyUndo } from './lib/undo.js';
 
   const storage = createStorage();
+  const undoStack = createUndoStack();
 
   let tasks = $state([]);
   let newTask = $state('');
@@ -43,27 +45,55 @@
   }
 
   function deleteTask(id) {
+    const index = tasks.findIndex(task => task.id === id);
+    if (index === -1) return;
+    undoStack.push({ type: 'delete', task: tasks[index], index });
     setTasks(taskOps.deleteTask(tasks, id));
   }
 
   function clearCompleted() {
+    // Built in ascending index order, which applyUndo relies on to put each
+    // task back where it was.
+    const removed = tasks
+      .map((task, index) => ({ task, index }))
+      .filter(({ task }) => task.completed);
+
+    if (removed.length === 0) return;
+    undoStack.push({ type: 'clearCompleted', removed });
     setTasks(taskOps.clearCompleted(tasks));
+  }
+
+  function undo() {
+    const entry = undoStack.pop();
+    if (entry) setTasks(applyUndo(tasks, entry));
   }
 
   function toggleTheme() {
     darkMode = !darkMode;
   }
 
-  function handleKeydown(event) {
+  /** Scoped to the input. Previously this also sat on window, so Enter while a
+   *  task was focused would toggle that task *and* add whatever was in the
+   *  input. */
+  function handleInputKeydown(event) {
     if (event.key === 'Enter') addTask();
     else if (event.key === 'Escape') newTask = '';
   }
 
+  function handleGlobalKeydown(event) {
+    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'z') return;
+    // Leave the text field its own native undo.
+    if (event.target instanceof HTMLInputElement) return;
+    event.preventDefault();
+    undo();
+  }
+
+  /** Backspace no longer deletes: it is the key people press meaning "go back",
+   *  and a task destroyed that way used to be unrecoverable. Delete still does,
+   *  and Cmd/Ctrl+Z now reverses it. */
   function handleTaskKeydown(event, taskId) {
-    if (event.key === ' ' || event.key === 'Enter') {
+    if (event.key === 'Delete') {
       event.preventDefault();
-      toggleTask(taskId);
-    } else if (event.key === 'Delete' || event.key === 'Backspace') {
       deleteTask(taskId);
     }
   }
@@ -170,7 +200,7 @@
   });
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleGlobalKeydown} />
 
 <div class="app">
   <header class="header">
@@ -235,7 +265,7 @@
           type="text"
           placeholder="+ Add a task"
           class="task-input"
-          onkeydown={handleKeydown}
+          onkeydown={handleInputKeydown}
         />
       </div>
 
@@ -271,9 +301,15 @@
               <p>No tasks yet. Add one above to get started!</p>
             </div>
           {:else}
+            <ul class="task-items">
             {#each tasks as task, index (task.id)}
-              <div 
-                class="task-item" 
+              <!-- The row is not itself focusable. Its handlers act on events
+                   bubbling up from the buttons inside it, and every action they
+                   provide is reachable from the keyboard: Delete removes a task,
+                   Alt+Arrow reorders one. -->
+              <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+              <li
+                class="task-item"
                 class:completed={task.completed}
                 class:dragging={draggedItem === index}
                 class:drag-over={draggedOverIndex === index}
@@ -285,15 +321,13 @@
                 ondragend={handleDragEnd}
                 ondragleave={handleDragLeave}
                 onkeydown={(e) => handleTaskKeydown(e, task.id)}
-                tabindex="0"
-                role="button"
-                aria-label={task.completed ? `Completed: ${task.text}` : `Incomplete: ${task.text}`}
               >
-                <button 
-                  class="checkbox" 
+                <button
+                  class="checkbox"
                   class:checked={task.completed}
                   onclick={() => toggleTask(task.id)}
-                  aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
+                  aria-pressed={task.completed}
+                  aria-label={task.text}
                 >
                   {#if task.completed}
                     <svg class="checkmark" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -304,10 +338,10 @@
                 
                 <span class="task-text">{task.text}</span>
                 
-                <button 
-                  class="delete-btn" 
+                <button
+                  class="delete-btn"
                   onclick={() => deleteTask(task.id)}
-                  aria-label="Delete task"
+                  aria-label="Delete {task.text}"
                 >
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <polyline points="3,6 5,6 21,6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -316,8 +350,9 @@
                     <line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
-              </div>
+              </li>
             {/each}
+            </ul>
           {/if}
         {/key}
       </div>

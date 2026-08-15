@@ -242,11 +242,18 @@ body {
 }
 
 .task-list {
+  min-height: 400px;
+  position: relative;
+}
+
+/* A real list, so screen readers announce item counts and position. */
+.task-items {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 400px;
-  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .task-item {
@@ -362,7 +369,11 @@ body {
   flex-shrink: 0;
 }
 
-.task-item:hover .delete-btn {
+/* focus-within matters as much as hover here: the button is opacity 0 by
+   default, so a keyboard user tabbing to it previously saw nothing at all —
+   the focus outline was drawn on an invisible element. */
+.task-item:hover .delete-btn,
+.task-item:focus-within .delete-btn {
   opacity: 1;
 }
 
