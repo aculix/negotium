@@ -11,6 +11,7 @@
   import * as taskOps from './lib/tasks.js';
   import { createUndoStack, applyUndo } from './lib/undo.js';
   import { shouldHandleUndo } from './lib/shortcuts.js';
+  import { buildExport, serialize, parseImport, mergeImport } from './lib/backup.js';
 
   const storage = createStorage();
   const undoStack = createUndoStack();
@@ -83,6 +84,63 @@
     darkMode = !darkMode;
   }
 
+  let fileInput;
+  let status = $state('');
+  let statusIsError = $state(false);
+  let statusTimer = null;
+
+  function showStatus(message, isError = false) {
+    status = message;
+    statusIsError = isError;
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(() => { status = ''; }, STATUS_MS);
+  }
+
+  function exportTasks() {
+    const text = serialize(buildExport(storage));
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `negotium-${todayKey}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    showStatus('Exported.');
+  }
+
+  async function importTasks(event) {
+    const file = event.target.files?.[0];
+    // Reset first, so picking the same file twice still fires a change event.
+    event.target.value = '';
+    if (!file) return;
+
+    let parsed;
+    try {
+      parsed = parseImport(await file.text());
+    } catch {
+      showStatus("That file couldn't be read.", true);
+      return;
+    }
+
+    if (!parsed.ok) {
+      showStatus(parsed.error, true);
+      return;
+    }
+
+    const { imported, duplicates, days } = mergeImport(storage, parsed);
+    tasks = storage.loadTasks(selectedKey);
+
+    if (imported === 0) {
+      showStatus(duplicates > 0 ? 'Already up to date.' : 'Nothing to import.');
+      return;
+    }
+
+    const taskWord = imported === 1 ? 'task' : 'tasks';
+    const dayWord = days === 1 ? 'day' : 'days';
+    showStatus(`Imported ${imported} ${taskWord} across ${days} ${dayWord}.`);
+  }
+
   /** Scoped to the input. Previously this also sat on window, so Enter while a
    *  task was focused would toggle that task *and* add whatever was in the
    *  input. */
@@ -126,6 +184,7 @@
   const DRAG_THRESHOLD_PX = 8;
   const LONG_PRESS_MS = 400;
   const SETTLE_MS = 240;
+  const STATUS_MS = 4000;
 
   let drag = null;
 
@@ -534,6 +593,22 @@
           {/if}
         {/key}
       </div>
+
+      <footer class="data-footer">
+        <button class="data-link" onclick={exportTasks}>Export</button>
+        <span class="data-sep" aria-hidden="true">·</span>
+        <button class="data-link" onclick={() => fileInput.click()}>Import</button>
+        <input
+          bind:this={fileInput}
+          type="file"
+          accept="application/json,.json"
+          class="visually-hidden"
+          onchange={importTasks}
+        />
+        <span class="data-status" class:error={statusIsError} role="status" aria-live="polite">
+          {status}
+        </span>
+      </footer>
     </div>
   </main>
 </div>

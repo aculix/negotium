@@ -20,6 +20,8 @@ Built with Svelte for speed and simplicity. No overwhelming features, no endless
 - 🎯 **Reorder by drag or keyboard** - Drag with a mouse, long-press and drag on touch, or use `Alt+↑`/`Alt+↓`
 - 💾 **Persistent storage** - All tasks saved locally in your browser
 - 📊 **Task statistics** - See how many tasks remain at a glance
+- 📱 **Installable and works offline** - Add it to your home screen or dock and it runs with no connection
+- 📦 **Export and import** - Take your tasks with you, or keep a backup
 
 ## 🚀 Getting Started
 
@@ -98,6 +100,22 @@ The date, storage, rollover, task and undo logic lives in `src/lib/` as plain mo
 - **Carry-over**: When a new day begins, whatever you didn't finish moves into Today. Completed tasks are cleared away with the day they belonged to. It works across gaps too. If you don't open Negotium for a week, everything still outstanding is waiting for you.
 - **While it's open**: The app notices the day change on its own, so a tab left open overnight rolls over without a reload.
 
+### Installing It
+
+Negotium is a PWA, so it installs like an app and runs without a connection.
+
+- **iPhone and iPad**: open it in Safari, tap Share, then Add to Home Screen
+- **Android**: Chrome offers Install from the menu, or prompts you directly
+- **Desktop**: Chrome and Edge show an install button in the address bar
+
+Once installed it opens in its own window with no browser chrome, and works on a plane. The app never needed the network for anything beyond loading itself.
+
+### Backing Up and Moving Between Devices
+
+Everything lives in one browser's storage, so `Export` writes it all to a JSON file you can keep or carry somewhere else. `Import` reads that file back.
+
+Import only ever adds. Tasks already present are left alone, so importing the same file twice changes nothing and importing into a list you're already using can't lose anything. The flip side is that import restores rather than reverts: it won't undo work you did after the export.
+
 ### Theme Toggle
 - Click the sun/moon icon in the header to switch themes
 - Your preference is saved automatically and restored on reload
@@ -121,6 +139,7 @@ All data is stored locally in your browser using localStorage:
 - **No server required**: Everything runs entirely client-side
 - **Privacy first**: Your data never leaves your device
 - **Self-pruning**: Past days are removed as their unfinished tasks carry forward, so storage doesn't grow without bound
+- **Yours to take**: Export writes everything to a JSON file, so your tasks aren't trapped in one browser
 
 Earlier versions keyed tasks by a different date format (`negotium-tasks-Sat Aug 15 2026`). Those convert automatically the first time you open this version. Nothing to do, and nothing is lost.
 

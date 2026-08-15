@@ -46,7 +46,9 @@ body {
 .header {
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border);
-  padding: 24px 48px;
+  /* The extra top padding is the iOS status bar when the app is installed to
+     the home screen. Without it the header sits underneath the clock. */
+  padding: calc(24px + env(safe-area-inset-top)) 48px 24px;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -149,7 +151,7 @@ body {
 }
 
 .main {
-  padding: 40px 0;
+  padding: 40px 0 calc(40px + env(safe-area-inset-bottom));
 }
 
 .container {
@@ -471,9 +473,76 @@ html.dark .task-item.dragging {
   margin: 0;
 }
 
+/* Deliberately quiet. Export and import get reached for once in a blue moon,
+   so they sit below the list in secondary text rather than taking a slot in
+   the header next to things you use constantly. */
+.data-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.data-link {
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  margin: 0;
+  border-radius: 4px;
+  font-family: var(--font-family);
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 200ms ease, background-color 200ms ease;
+}
+
+.data-link:hover {
+  color: var(--accent);
+  background-color: var(--hover);
+}
+
+.data-sep {
+  color: var(--border);
+}
+
+.data-status {
+  margin-left: 4px;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.data-status:not(:empty) {
+  opacity: 1;
+}
+
+.data-status.error {
+  color: #d14343;
+}
+
+html.dark .data-status.error {
+  color: #ff8a8a;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 @media (max-width: 768px) {
   .header {
-    padding: 16px 24px;
+    padding: calc(16px + env(safe-area-inset-top)) 24px 16px;
   }
 
   .header-content {
@@ -514,7 +583,7 @@ html.dark .task-item.dragging {
 
 @media (max-width: 480px) {
   .header {
-    padding: 12px 16px;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
   }
 
   .container {
