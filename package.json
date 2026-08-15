@@ -1,6 +1,6 @@
 {
   "name": "negotium-todo",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A clean, minimal to-do list application with smooth animations and dark/light mode support",
   "type": "module",
   "main": "index.html",
