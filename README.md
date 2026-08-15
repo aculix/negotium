@@ -2,7 +2,7 @@
 
 A beautiful, minimal to-do list application featuring smooth animations, intelligent date management, and a modern design that helps you stay organized and productive.
 
-![Negotium Screenshot](assets/screenshot.png)
+![Negotium Screenshot](docs/screenshot.png)
 
 ## 💭 Why Negotium?
 
@@ -14,11 +14,12 @@ Built with Svelte for speed and simplicity. No overwhelming features, no endless
 
 ### Core Functionality
 - ✅ **Add, complete, and delete tasks** with smooth animations
+- ↩️ **Undo** - `Cmd/Ctrl+Z` brings back a deleted task, in its original position
 - 📅 **Today & Tomorrow lists** - Plan ahead with separate task lists
-- 🔄 **Automatic task migration** - Tomorrow's tasks automatically move to Today when a new day begins
-- 🎯 **Drag and drop reordering** - Organize tasks by dragging them into position
+- 🔄 **Unfinished work carries over** - When a new day begins, tasks you didn't finish move to Today; completed ones are cleared away
+- 🎯 **Reorder by drag or keyboard** - Drag with a mouse, long-press and drag on touch, or use `Alt+↑`/`Alt+↓`
 - 💾 **Persistent storage** - All tasks saved locally in your browser
-- 📊 **Task statistics** - See remaining and completed tasks at a glance
+- 📊 **Task statistics** - See how many tasks remain at a glance
 
 ## 🚀 Getting Started
 
@@ -72,20 +73,30 @@ npm run build
 
 The optimized files will be in the `dist` directory.
 
+#### Running the Tests
+
+```bash
+npm test
+```
+
+The date, storage, rollover, task and undo logic lives in `src/lib/` as plain modules that take the current time as an argument, so behaviour at a day boundary is covered by ordinary unit tests rather than by waiting for midnight.
+
 ## 📖 How to Use
 
 ### Managing Tasks
 - **Add a task**: Type in the input field and press Enter
 - **Complete a task**: Click the checkbox next to the task
-- **Delete a task**: Hover over a task and click the delete icon
-- **Reorder tasks**: Click and drag any task to a new position
-- **Clear input**: Press Escape to clear the input field
+- **Delete a task**: Hover over a task and click the delete icon, or press `Delete` with the task focused
+- **Undo a delete**: Press `Cmd/Ctrl+Z` — the task returns to where it was
+- **Reorder tasks**: Drag with a mouse, long-press then drag on touch, or focus a task and press `Alt+↑`/`Alt+↓`
+- **Clear input**: Press Escape while the input is focused
 
 ### Date Management
 - **Switch between Today and Tomorrow**: Click the date button in the header
 - **Plan ahead**: Add tasks to Tomorrow's list before you need them
-- **Automatic migration**: When a new day begins, Tomorrow's tasks automatically become Today's tasks
 - **Separate lists**: Today and Tomorrow maintain independent task lists
+- **Carry-over**: When a new day begins, whatever you didn't finish moves into Today. Completed tasks are cleared away with the day they belonged to. This works across gaps too — if you don't open Negotium for a week, everything still outstanding is waiting for you.
+- **While it's open**: The app notices the day change on its own, so a tab left open overnight rolls over without a reload.
 
 ### Theme Toggle
 - Click the sun/moon icon in the header to switch themes
@@ -94,17 +105,24 @@ The optimized files will be in the `dist` directory.
 
 ### Keyboard Shortcuts
 - **Enter**: Add task (when input is focused)
-- **Escape**: Clear input field
-- **Space/Enter**: Toggle task completion (when task is focused)
-- **Delete/Backspace**: Delete task (when task is focused)
+- **Escape**: Clear input field (when input is focused)
+- **Space/Enter**: Toggle task completion (when a task's checkbox is focused)
+- **Delete**: Delete the focused task
+- **Cmd/Ctrl+Z**: Undo the last delete or clear-completed
+- **Alt+↑ / Alt+↓**: Move the focused task up or down
+
+Backspace no longer deletes a task. It is too easily pressed by accident, and deletions used to be unrecoverable.
 
 ## 💾 Data Storage
 
 All data is stored locally in your browser using localStorage:
-- **Tasks**: Separate storage keys for each date (`negotium-tasks-<date>`)
+- **Tasks**: One key per date, in ISO form (`negotium-tasks-2026-08-15`)
 - **Theme**: Your theme preference (`negotium-theme`)
 - **No server required**: Everything runs entirely client-side
 - **Privacy first**: Your data never leaves your device
+- **Self-pruning**: Past days are removed as their unfinished tasks carry forward, so storage doesn't grow without bound
+
+Earlier versions keyed tasks by a different date format (`negotium-tasks-Sat Aug 15 2026`). Those are converted automatically the first time you open this version — nothing to do, and nothing is lost.
 
 ## 📄 License
 
