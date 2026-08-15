@@ -367,6 +367,13 @@ html.dark .task-item.dragging {
 
 .task-text {
   flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: text;
   font-size: 16px;
   /* 24px line box, the same height as the checkbox, so the two align on the
      first line without nudging either. */
@@ -379,6 +386,23 @@ html.dark .task-item.dragging {
 .task-item.completed .task-text {
   text-decoration: line-through;
   color: var(--completed-text);
+}
+
+/* Sized and spaced to match .task-text exactly, so committing an edit does
+   not shift the row by a pixel. */
+.task-edit {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 0 6px;
+  margin: 0 -7px;
+  outline: none;
 }
 
 .row-btn {

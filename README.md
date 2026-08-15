@@ -17,6 +17,7 @@ Built with Svelte for speed and simplicity. No overwhelming features, no endless
 - ↩️ **Undo** - `Cmd/Ctrl+Z` brings back a deleted task, in its original position
 - 📅 **Today & Tomorrow lists** - Plan ahead with separate task lists
 - 🔄 **Unfinished work carries over** - When a new day begins, tasks you didn't finish move to Today; completed ones are cleared away
+- ✏️ **Edit a task** - Fix a typo without deleting and retyping it
 - ➡️ **Push a task to tomorrow** - Didn't get to it? Move it across without retyping it
 - 🎯 **Reorder by drag or keyboard** - Drag with a mouse, long-press and drag on touch, or use `Alt+↑`/`Alt+↓`
 - 💾 **Persistent storage** - All tasks saved locally in your browser
@@ -89,6 +90,7 @@ The date, storage, rollover, task and undo logic lives in `src/lib/` as plain mo
 ### Managing Tasks
 - **Add a task**: Type in the input field and press Enter
 - **Complete a task**: Click the checkbox next to the task
+- **Edit a task**: Click its text. Enter saves, Escape cancels, and clicking away saves too
 - **Delete a task**: Click the delete icon on the task (it shows on hover, and is always visible on touch), or press `Delete` with the task focused
 - **Undo a delete**: Press `Cmd/Ctrl+Z`. The task returns to where it was
 - **Move a task to Tomorrow**: Click the arrow on the task, or press `Alt+→`. From Tomorrow, the arrow points back and `Alt+←` returns it to Today

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { addTask, toggleTask, deleteTask, reorderTask, clearCompleted } from './tasks.js'
+import { addTask, toggleTask, deleteTask, reorderTask, clearCompleted, renameTask } from './tasks.js'
 
 const task = (id, completed = false) => ({ id, text: id, completed })
 
@@ -124,5 +124,59 @@ describe('clearCompleted', () => {
 
   it('can empty the list entirely', () => {
     expect(clearCompleted([task('a', true)])).toEqual([])
+  })
+})
+
+describe('renameTask', () => {
+  const task = (id, text = id, completed = false) => ({ id, text, completed, createdAt: 1 })
+
+  it('replaces the text', () => {
+    expect(renameTask([task('a', 'old')], 'a', 'new')[0].text).toBe('new')
+  })
+
+  it('trims what it is given', () => {
+    expect(renameTask([task('a', 'old')], 'a', '  spaced  ')[0].text).toBe('spaced')
+  })
+
+  it('refuses to blank a task', () => {
+    const before = [task('a', 'keep me')]
+    expect(renameTask(before, 'a', '')).toBe(before)
+    expect(renameTask(before, 'a', '    ')).toBe(before)
+  })
+
+  it('keeps completion, id and creation time', () => {
+    const before = [{ id: 'a', text: 'old', completed: true, createdAt: 99 }]
+    expect(renameTask(before, 'a', 'new')[0]).toEqual({ id: 'a', text: 'new', completed: true, createdAt: 99 })
+  })
+
+  it('leaves the other tasks alone', () => {
+    const result = renameTask([task('a'), task('b'), task('c')], 'b', 'changed')
+    expect(result.map(t => t.text)).toEqual(['a', 'changed', 'c'])
+  })
+
+  it('keeps the task in place', () => {
+    const result = renameTask([task('a'), task('b')], 'a', 'changed')
+    expect(result.map(t => t.id)).toEqual(['a', 'b'])
+  })
+
+  it('ignores an unknown id', () => {
+    const before = [task('a')]
+    expect(renameTask(before, 'zzz', 'nope')).toBe(before)
+  })
+
+  it('is a no-op when the text has not changed', () => {
+    const before = [task('a', 'same')]
+    expect(renameTask(before, 'a', 'same')).toBe(before)
+  })
+
+  it('handles emoji and non-latin text', () => {
+    expect(renameTask([task('a')], 'a', '買い物 🛒')[0].text).toBe('買い物 🛒')
+    expect(renameTask([task('a')], 'a', 'اشتر الحليب')[0].text).toBe('اشتر الحليب')
+  })
+
+  it('does not mutate the input array', () => {
+    const before = [task('a', 'old')]
+    renameTask(before, 'a', 'new')
+    expect(before[0].text).toBe('old')
   })
 })

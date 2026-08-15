@@ -39,3 +39,21 @@ export function reorderTask(tasks, from, to) {
 export function clearCompleted(tasks) {
   return tasks.filter((task) => !task.completed)
 }
+
+/**
+ * Rewrites a task's text in place, keeping its id, position and completion.
+ *
+ * Blank input is refused rather than treated as a delete. Someone who selects
+ * all and hits enter by accident should get their task back, not lose it, and
+ * an empty row would be unreadable anyway. Returning the original array when
+ * nothing changed also keeps a pointless write out of storage.
+ */
+export function renameTask(tasks, id, text) {
+  const trimmed = text.trim()
+  if (!trimmed) return tasks
+
+  const current = tasks.find((task) => task.id === id)
+  if (!current || current.text === trimmed) return tasks
+
+  return tasks.map((task) => (task.id === id ? { ...task, text: trimmed } : task))
+}

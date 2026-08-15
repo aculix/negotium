@@ -78,9 +78,53 @@
 
   const viewingToday = $derived(selectedKey === todayKey);
 
+  let editingId = $state(null);
+  let editingText = $state('');
+  // A drag ends with a click event, which would otherwise drop the row you
+  // just moved straight into edit mode.
+  let suppressClick = false;
+
+  function startEditing(task) {
+    if (suppressClick || draggedId) return;
+    editingId = task.id;
+    editingText = task.text;
+  }
+
+  function commitEdit() {
+    if (editingId === null) return;
+    // renameTask refuses blank input, so an accidental select-all and enter
+    // leaves the task as it was rather than wiping it.
+    setTasks(taskOps.renameTask(tasks, editingId, editingText));
+    editingId = null;
+  }
+
+  function cancelEdit() {
+    editingId = null;
+  }
+
+  function handleEditKeydown(event) {
+    // Stop these reaching the row, which would delete or reorder the task
+    // being typed into.
+    event.stopPropagation();
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      commitEdit();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      cancelEdit();
+    }
+  }
+
+  function focusOnMount(node) {
+    node.focus();
+    node.select();
+  }
+
   /** "Not today, tomorrow" and its reverse. Which direction depends only on
    *  which day you are looking at, so one control covers both. */
   function deferTask(taskId) {
+    cancelEdit();
     const destination = viewingToday ? tomorrowKey() : todayKey;
     tasks = moveTaskToDay(storage, selectedKey, destination, taskId);
   }
@@ -305,6 +349,7 @@
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     // Let the checkbox and delete button have their clicks.
     if (event.target.closest('button')) return;
+    if (event.target.closest('.task-edit')) return;
 
     drag = {
       id: tasks[index].id,
@@ -369,6 +414,10 @@
 
     if (!wasActive) return;
 
+    // Swallow the click the browser fires after this drag.
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 0);
+
     // Clearing the inline transform while the settling class supplies a
     // transition eases the card into its slot. Nothing else on the list moves,
     // because nothing else changed.
@@ -398,6 +447,7 @@
   }
 
   function switchDate() {
+    cancelEdit();
     selectedKey = selectedKey === todayKey ? tomorrowKey() : todayKey;
     tasks = storage.loadTasks(selectedKey);
   }
@@ -411,6 +461,7 @@
    * they follow it there, which preserves the existing mental model.
    */
   function runRollover() {
+    cancelEdit();
     const now = new Date();
     const wasViewingToday = selectedKey === todayKey;
 
@@ -613,7 +664,21 @@
                   {/if}
                 </button>
                 
-                <span class="task-text">{task.text}</span>
+                {#if task.id === editingId}
+                  <input
+                    class="task-edit"
+                    type="text"
+                    bind:value={editingText}
+                    onkeydown={handleEditKeydown}
+                    onblur={commitEdit}
+                    use:focusOnMount
+                    aria-label="Edit {task.text}"
+                  />
+                {:else}
+                  <button class="task-text" onclick={() => startEditing(task)} title="Click to edit">
+                    {task.text}
+                  </button>
+                {/if}
                 
                 <button
                   class="row-btn defer-btn"
