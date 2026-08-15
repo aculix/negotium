@@ -7,7 +7,7 @@ import { toKey } from './dates.js'
  * today (oldest day first, within-day order preserved, ahead of anything
  * already in today), completed tasks are discarded, and the old key is
  * deleted. Pruning is therefore a side effect of carrying, so there is no
- * separate retention policy. Future keys — Tomorrow — are never touched.
+ * separate retention policy. Future keys, meaning Tomorrow, are never touched.
  *
  * `now` is a parameter rather than a `new Date()` call so the boundary is
  * testable. This replaces `checkAndMigrateTasks`, whose guard compared a
@@ -17,7 +17,7 @@ export function rollover(storage, now) {
   const todayKey = toKey(now)
 
   // listTaskKeys yields only well-formed ISO keys, which is what makes this
-  // string comparison safe — and is why the key format changed.
+  // string comparison safe, and is why the key format changed.
   const pastKeys = storage
     .listTaskKeys()
     .filter((key) => key < todayKey)

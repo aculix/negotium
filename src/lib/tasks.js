@@ -1,5 +1,5 @@
 /** crypto.randomUUID requires a secure context, and Negotium over plain HTTP
- *  on a LAN is a real self-hosted deployment shape — hence the fallback. */
+ *  on a LAN is a real deployment shape for this app, hence the fallback. */
 function newId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID()

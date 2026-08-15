@@ -87,7 +87,7 @@ The date, storage, rollover, task and undo logic lives in `src/lib/` as plain mo
 - **Add a task**: Type in the input field and press Enter
 - **Complete a task**: Click the checkbox next to the task
 - **Delete a task**: Hover over a task and click the delete icon, or press `Delete` with the task focused
-- **Undo a delete**: Press `Cmd/Ctrl+Z` — the task returns to where it was
+- **Undo a delete**: Press `Cmd/Ctrl+Z`. The task returns to where it was
 - **Reorder tasks**: Drag with a mouse, long-press then drag on touch, or focus a task and press `Alt+↑`/`Alt+↓`
 - **Clear input**: Press Escape while the input is focused
 
@@ -95,7 +95,7 @@ The date, storage, rollover, task and undo logic lives in `src/lib/` as plain mo
 - **Switch between Today and Tomorrow**: Click the date button in the header
 - **Plan ahead**: Add tasks to Tomorrow's list before you need them
 - **Separate lists**: Today and Tomorrow maintain independent task lists
-- **Carry-over**: When a new day begins, whatever you didn't finish moves into Today. Completed tasks are cleared away with the day they belonged to. This works across gaps too — if you don't open Negotium for a week, everything still outstanding is waiting for you.
+- **Carry-over**: When a new day begins, whatever you didn't finish moves into Today. Completed tasks are cleared away with the day they belonged to. It works across gaps too. If you don't open Negotium for a week, everything still outstanding is waiting for you.
 - **While it's open**: The app notices the day change on its own, so a tab left open overnight rolls over without a reload.
 
 ### Theme Toggle
@@ -122,7 +122,7 @@ All data is stored locally in your browser using localStorage:
 - **Privacy first**: Your data never leaves your device
 - **Self-pruning**: Past days are removed as their unfinished tasks carry forward, so storage doesn't grow without bound
 
-Earlier versions keyed tasks by a different date format (`negotium-tasks-Sat Aug 15 2026`). Those are converted automatically the first time you open this version — nothing to do, and nothing is lost.
+Earlier versions keyed tasks by a different date format (`negotium-tasks-Sat Aug 15 2026`). Those convert automatically the first time you open this version. Nothing to do, and nothing is lost.
 
 ## 📄 License
 

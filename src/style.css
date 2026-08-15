@@ -274,7 +274,7 @@ body {
   cursor: grabbing;
 }
 
-/* The lifted card. It stays fully opaque and sits above the list — the old
+/* The lifted card. It stays fully opaque and sits above the list. The old
    ghosted 0.4 opacity read as "this card is disabled" rather than "you are
    holding this card". The gap that opens beneath it is the drop indicator. */
 .task-item.dragging {
@@ -390,7 +390,7 @@ html.dark .task-item.dragging {
 }
 
 /* focus-within matters as much as hover here: the button is opacity 0 by
-   default, so a keyboard user tabbing to it previously saw nothing at all —
+   default, so a keyboard user tabbing to it previously saw nothing at all:
    the focus outline was drawn on an invisible element. */
 .task-item:hover .delete-btn,
 .task-item:focus-within .delete-btn {
@@ -458,7 +458,7 @@ html.dark .task-item.dragging {
   50% { opacity: 0.6; transform: translateY(-6px); }
 }
 
-/* Decorative only — respect a reduced-motion preference. */
+/* Decorative only, so respect a reduced-motion preference. */
 @media (prefers-reduced-motion: reduce) {
   .empty-art-box,
   .empty-art-motes path {

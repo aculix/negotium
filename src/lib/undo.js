@@ -24,7 +24,7 @@ export function createUndoStack(limit = 10) {
  * Reverses one entry against the current task list.
  *
  * Indices are clamped because the list may have changed since the entry was
- * recorded — a task deleted from position 5 can be restored into a list that
+ * recorded. A task deleted from position 5 can be restored into a list that
  * has since shrunk to two items, and landing at the end beats throwing.
  *
  * `clearCompleted` entries must record `removed` in ascending index order, so

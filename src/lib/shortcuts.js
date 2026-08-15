@@ -4,10 +4,10 @@ const TEXT_FIELDS = new Set(['INPUT', 'TEXTAREA'])
  * Whether a keydown should trigger task undo.
  *
  * The subtlety is the text field. Deferring to a focused field's own undo
- * sounds right, but the add-task input is where focus normally sits — you
+ * sounds right, but the add-task input is where focus normally sits. You
  * click it to add a task and focus stays there, and on macOS clicking a
  * button does not move focus. Guarding on focus alone therefore disables
- * undo in precisely the situation it is needed: right after deleting a task.
+ * undo in the one situation it is needed: right after deleting a task.
  *
  * So it defers only when the field actually holds text worth undoing. An
  * empty input has nothing for the browser to restore, and task undo wins.

@@ -17,7 +17,7 @@
 
   // Storage is synchronous, so the first render can already have the real list.
   // Loading in onMount instead meant one frame of the empty state on every
-  // launch — previously hidden behind the splash screen, and very visible once
+  // launch. That was hidden behind the splash screen before, and very visible once
   // that went away.
   storage.migrateLegacyKeys();
   const bootNow = new Date();
@@ -38,7 +38,7 @@
 
   /** Single write path, so persistence cannot drift out of step with the list.
    *  Loading a different day assigns `tasks` directly and deliberately skips
-   *  this — there is nothing new to save. */
+   *  this, because there is nothing new to save. */
   function setTasks(next) {
     tasks = next;
     if (isInitialized) storage.saveTasks(selectedKey, tasks);
@@ -116,7 +116,7 @@
   }
 
   // Reordering runs on Pointer Events rather than HTML5 drag-and-drop, which
-  // never fired on touch at all — so a documented feature was desktop-only.
+  // never fired on touch at all, so a documented feature was desktop-only.
   //
   // Touch and mouse need different entry conditions. A mouse drag begins once
   // the pointer has moved past a small threshold. A touch drag cannot, because
@@ -181,9 +181,9 @@
    * Inline styling for the one row the pointer is carrying.
    *
    * Only the lifted card is styled here. Everything else is moved by
-   * animate:flip, so exactly one mechanism owns `transform` per element —
-   * when both did, flip measured a "before" rect that already included a
-   * manual offset, computed a bogus delta, and slid the whole list on drop.
+   * animate:flip, so one mechanism owns `transform` per element. When both
+   * did, flip measured a "before" rect that already had a manual offset in
+   * it, computed a bogus delta, and slid the whole list on drop.
    *
    * The lifted card takes no transition, so it stays welded to the pointer.
    * On release it keeps its transform but gains one via the settling class,
@@ -245,7 +245,7 @@
 
     // Reorder as the pointer crosses each boundary rather than waiting for the
     // drop. animate:flip then eases the displaced card across, one swap at a
-    // time, and by release the list is already in its final order — so letting
+    // time. By release the list is already in its final order, so letting
     // go changes nothing but the lifted card settling into place.
     const from = tasks.findIndex(task => task.id === drag.id);
     const to = targetIndexFor(event.clientY);
@@ -268,8 +268,8 @@
     const landedAt = tasks.findIndex(task => task.id === drag.id);
     const settling = drag.id;
 
-    // The order is already correct — it was applied swap by swap during the
-    // drag — so this only writes it through to storage.
+    // The order is already correct, applied swap by swap during the
+    // drag, so this only writes it through to storage.
     if (wasActive && landedAt !== drag.originIndex) setTasks(tasks);
 
     endDrag();
@@ -311,7 +311,7 @@
 
   /**
    * Re-evaluates the day boundary and reloads the visible list. Safe to call
-   * repeatedly — rollover is idempotent within a day.
+   * repeatedly, since rollover is idempotent within a day.
    *
    * If the day changed while the user was looking at Today, they stay on the
    * new Today. If they were looking at Tomorrow, that key has become Today and
