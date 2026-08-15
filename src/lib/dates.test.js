@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toKey, fromKey, addDays, isKey, labelFor, formatLong } from './dates.js'
+import { toKey, fromKey, addDays, isKey, formatLong } from './dates.js'
 
 describe('toKey', () => {
   it('formats a date as local YYYY-MM-DD', () => {
@@ -57,28 +57,6 @@ describe('isKey', () => {
 
   it('rejects arbitrary strings', () => {
     expect(isKey('not-a-date')).toBe(false)
-  })
-})
-
-describe('labelFor', () => {
-  it('labels today', () => {
-    expect(labelFor('2026-08-15', '2026-08-15')).toBe('Today')
-  })
-
-  it('labels tomorrow', () => {
-    expect(labelFor('2026-08-16', '2026-08-15')).toBe('Tomorrow')
-  })
-
-  it('labels tomorrow across a month boundary', () => {
-    expect(labelFor('2026-09-01', '2026-08-31')).toBe('Tomorrow')
-  })
-
-  it('labels tomorrow across a year boundary', () => {
-    expect(labelFor('2027-01-01', '2026-12-31')).toBe('Tomorrow')
-  })
-
-  it('falls back to a short date for other days', () => {
-    expect(labelFor('2026-08-20', '2026-08-15')).toBe('Aug 20')
   })
 })
 

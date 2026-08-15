@@ -28,12 +28,6 @@ export function isKey(value) {
   return KEY_PATTERN.test(value)
 }
 
-export function labelFor(dateKey, todayKey) {
-  if (dateKey === todayKey) return 'Today'
-  if (dateKey === toKey(addDays(fromKey(todayKey), 1))) return 'Tomorrow'
-  return fromKey(dateKey).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
 export function formatLong(dateKey) {
   return fromKey(dateKey).toLocaleDateString('en-US', {
     weekday: 'long',

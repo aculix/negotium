@@ -98,10 +98,10 @@ The date, storage, rollover, task and undo logic lives in `src/lib/` as plain mo
 - **Clear input**: Press Escape while the input is focused
 
 ### Date Management
-- **Switch between Today and Tomorrow**: Click the date button in the header
+- **Switch between Today and Tomorrow**: Pick either one in the header. The current day is the highlighted one
 - **Plan ahead**: Add tasks to Tomorrow's list before you need them
 - **Separate lists**: Today and Tomorrow maintain independent task lists
-- **Carry-over**: When a new day begins, whatever you didn't finish moves into Today. Completed tasks are cleared away with the day they belonged to. It works across gaps too. If you don't open Negotium for a week, everything still outstanding is waiting for you.
+- **Carry-over**: When a new day begins, whatever you didn't finish moves into Today, and the app tells you how many tasks it brought forward so they don't look like they appeared from nowhere. Completed tasks are cleared away with the day they belonged to. It works across gaps too. If you don't open Negotium for a week, everything still outstanding is waiting for you.
 - **While it's open**: The app notices the day change on its own, so a tab left open overnight rolls over without a reload.
 
 ### Installing It

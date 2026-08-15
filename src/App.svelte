@@ -5,7 +5,7 @@
   import { cubicOut } from 'svelte/easing';
   import './style.css';
 
-  import { toKey, addDays, fromKey, labelFor, formatLong } from './lib/dates.js';
+  import { toKey, addDays, fromKey, formatLong } from './lib/dates.js';
   import { createStorage } from './lib/storage.js';
   import { rollover, msUntilNextMidnight } from './lib/rollover.js';
   import * as taskOps from './lib/tasks.js';
@@ -24,7 +24,19 @@
   storage.migrateLegacyKeys();
   const bootNow = new Date();
 
+  const bootTodayKey = toKey(bootNow);
+  const beforeRollover = storage.loadTasks(bootTodayKey).length;
+
   let tasks = $state(rollover(storage, bootNow));
+
+  /** How many unfinished tasks were pulled forward from earlier days on this
+   *  load. The app's cleverest behaviour used to happen in complete silence,
+   *  so returning after a weekend looked like a bug rather than a feature. */
+  let carriedOver = $state(Math.max(0, tasks.length - beforeRollover));
+
+  function dismissCarriedOver() {
+    carriedOver = 0;
+  }
   let newTask = $state('');
   // Seeded from the class the pre-paint script in index.html already set, so
   // there is one source of truth and no post-mount correction to flash.
@@ -474,9 +486,11 @@
     return toKey(addDays(fromKey(todayKey), 1));
   }
 
-  function switchDate() {
+  function showDay(key) {
+    if (key === selectedKey) return;
     cancelEdit();
-    selectedKey = selectedKey === todayKey ? tomorrowKey() : todayKey;
+    dismissUndo();
+    selectedKey = key;
     tasks = storage.loadTasks(selectedKey);
   }
 
@@ -494,7 +508,10 @@
     const wasViewingToday = selectedKey === todayKey;
 
     todayKey = toKey(now);
+    const before = storage.loadTasks(todayKey).length;
     const todayTasks = rollover(storage, now);
+    const moved = todayTasks.length - before;
+    if (moved > 0) carriedOver = moved;
 
     if (wasViewingToday) {
       selectedKey = todayKey;
@@ -521,7 +538,6 @@
   }
 
   const currentDateDisplay = $derived(formatLong(selectedKey));
-  const buttonText = $derived(labelFor(selectedKey, todayKey));
 
   const remainingTasks = $derived(tasks.filter(task => !task.completed).length);
   const completedTasks = $derived(tasks.filter(task => task.completed).length);
@@ -571,15 +587,26 @@
       </div>
       
       <div class="header-actions">
-        <button class="today-btn" aria-label="Switch between Today and Tomorrow" onclick={switchDate}>
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-            <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"/>
-            <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2"/>
-            <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          {buttonText}
-        </button>
+        <!-- Both options are visible with the current one marked, so the
+             control no longer has to be clicked to find out what it does. -->
+        <div class="day-switch" role="group" aria-label="Choose a day">
+          <button
+            class="day-option"
+            class:selected={viewingToday}
+            aria-pressed={viewingToday}
+            onclick={() => showDay(todayKey)}
+          >
+            Today
+          </button>
+          <button
+            class="day-option"
+            class:selected={!viewingToday}
+            aria-pressed={!viewingToday}
+            onclick={() => showDay(tomorrowKey())}
+          >
+            Tomorrow
+          </button>
+        </div>
         
         <button 
           class="theme-toggle" 
@@ -633,6 +660,21 @@
           </button>
         {/if}
       </div>
+
+      {#if carriedOver > 0 && viewingToday}
+        <div class="carried-notice">
+          <span>
+            {carriedOver === 1
+              ? 'One unfinished task carried over from an earlier day.'
+              : `${carriedOver} unfinished tasks carried over from earlier days.`}
+          </span>
+          <button class="carried-dismiss" onclick={dismissCarriedOver} aria-label="Dismiss">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      {/if}
 
       <div class="task-list">
         {#key selectedKey}

@@ -92,30 +92,45 @@ body {
   gap: 16px;
 }
 
-.today-btn {
+/* Both days are shown with the current one marked, so the control states
+   where you are and what the alternative is without being clicked. */
+.day-switch {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: transparent;
   border: 1px solid var(--border);
   border-radius: 8px;
-  color: var(--text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 200ms ease;
+  padding: 3px;
+  gap: 2px;
   height: 40px;
+  transition: border-color 200ms ease;
 }
 
-.today-btn:hover {
+.day-option {
+  padding: 0 14px;
+  height: 100%;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 200ms ease, color 200ms ease;
+  white-space: nowrap;
+}
+
+.day-option:hover {
+  color: var(--text-primary);
+}
+
+.day-option.selected {
   background-color: var(--hover);
-  border-color: var(--accent);
-  color: var(--accent);
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
-.today-btn svg {
-  width: 16px;
-  height: 16px;
+html.dark .day-option.selected {
+  background-color: var(--hover);
 }
 
 .theme-toggle {
@@ -604,7 +619,7 @@ html.dark .data-status.error {
     transform: translate(-50%, -50%);
   }
 
-  .today-btn,
+  .day-switch,
   .theme-toggle {
     height: 44px;
   }
@@ -776,5 +791,57 @@ html.dark .undo-toast {
 
   .undo-action {
     min-height: 44px;
+  }
+}
+
+/* Says out loud what rollover just did. Without it, opening the app after a
+   few days away looks like tasks appearing from nowhere. */
+.carried-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 8px;
+  background-color: var(--completed-bg);
+  color: var(--completed-text);
+  font-size: 14px;
+}
+
+.carried-notice span {
+  flex: 1;
+  min-width: 0;
+}
+
+.carried-dismiss {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 200ms ease, background-color 200ms ease;
+}
+
+.carried-dismiss:hover {
+  opacity: 1;
+  background-color: var(--hover);
+}
+
+.carried-dismiss svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (pointer: coarse) {
+  .carried-dismiss {
+    width: 44px;
+    height: 44px;
   }
 }
