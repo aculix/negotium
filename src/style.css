@@ -273,32 +273,43 @@ body {
   cursor: grabbing;
 }
 
+/* The lifted card. It stays fully opaque and sits above the list — the old
+   ghosted 0.4 opacity read as "this card is disabled" rather than "you are
+   holding this card". The gap that opens beneath it is the drop indicator. */
 .task-item.dragging {
-  opacity: 0.4;
   cursor: grabbing;
-  /* Only while a drag is actually in flight, so an ordinary touch on a row
-     still scrolls the page. */
+  z-index: 20;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.18),
+    0 4px 8px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent);
+  /* Only while a drag is in flight, so an ordinary touch still scrolls. */
   touch-action: none;
   user-select: none;
 }
 
-.task-item.drag-over::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background-color: var(--accent);
-  border-radius: 2px;
-  box-shadow: 0 0 8px rgba(96, 122, 251, 0.4);
-  z-index: 10;
+html.dark .task-item.dragging {
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.5),
+    0 4px 8px rgba(0, 0, 0, 0.35);
 }
 
+/* Cards sliding aside to open the gap. */
+.task-item.drag-settling {
+  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* A drag is in progress: suppress hover lift on the cards being displaced,
+   which would otherwise fight the transform that opens the gap. */
 .task-item:hover {
   background-color: var(--hover);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.task-items:has(.dragging) .task-item:not(.dragging):hover {
+  background-color: var(--bg-surface);
+  box-shadow: none;
 }
 
 .task-item.completed {

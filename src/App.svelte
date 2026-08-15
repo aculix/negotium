@@ -1,6 +1,7 @@
 <script>
   import { onMount, tick } from 'svelte';
   import { fly, fade } from 'svelte/transition';
+  import { flip } from 'svelte/animate';
   import { cubicOut } from 'svelte/easing';
   import './style.css';
 
@@ -10,6 +11,7 @@
   import * as taskOps from './lib/tasks.js';
   import { createUndoStack, applyUndo } from './lib/undo.js';
   import { shouldHandleUndo } from './lib/shortcuts.js';
+  import { displacement } from './lib/drag.js';
 
   const storage = createStorage();
   const undoStack = createUndoStack();
@@ -31,6 +33,8 @@
   let selectedKey = $state(toKey(bootNow));
   let draggedItem = $state(null);
   let draggedOverIndex = $state(null);
+  let dragOffsetY = $state(0);
+  let dragShift = $state(0);
   let midnightTimer = null;
 
   /** Single write path, so persistence cannot drift out of step with the list.
@@ -134,6 +138,25 @@
     drag.active = true;
     draggedItem = drag.index;
     draggedOverIndex = drag.index;
+    dragOffsetY = 0;
+
+    // Snapshot the slot geometry before anything is transformed, and store it
+    // relative to the list so page scrolling during a drag stays harmless.
+    //
+    // Measuring live rects instead would feed the drag back into itself: the
+    // shift transforms move the very midpoints used to pick the target, so the
+    // choice would oscillate between two slots.
+    const list = drag.row.parentElement;
+    const listTop = list.getBoundingClientRect().top;
+    drag.slots = [...list.children].map(child => {
+      const rect = child.getBoundingClientRect();
+      return { top: rect.top - listTop, height: rect.height };
+    });
+
+    // The space a lifted card vacates is its own height plus one gap, so that
+    // is exactly how far the cards it displaces need to travel.
+    const gap = parseFloat(getComputedStyle(list).rowGap) || 0;
+    dragShift = drag.slots[drag.index].height + gap;
 
     try {
       drag.row.setPointerCapture(drag.pointerId);
@@ -161,15 +184,40 @@
     drag = null;
     draggedItem = null;
     draggedOverIndex = null;
+    dragOffsetY = 0;
+  }
+
+  /**
+   * Per-row styling during a drag.
+   *
+   * The lifted card stays fully opaque and tracks the pointer with no
+   * transition, so it feels attached to the finger or cursor. Every card
+   * between its origin and its destination slides by exactly the space the
+   * lifted card vacated, which opens a real gap where it will land — the gap
+   * is the drop indicator, so it is always accurate by construction.
+   */
+  function rowStyle(index) {
+    if (draggedItem === null) return '';
+
+    if (index === draggedItem) {
+      return `transform: translateY(${dragOffsetY}px) scale(1.02) rotate(-0.4deg); transition: none;`;
+    }
+
+    const shift = displacement(index, draggedItem, draggedOverIndex, dragShift);
+    return `transform: translateY(${shift}px);`;
   }
 
   function targetIndexFor(clientY) {
-    const rows = [...drag.row.parentElement.children];
-    for (let i = 0; i < rows.length; i += 1) {
-      const rect = rows[i].getBoundingClientRect();
-      if (clientY < rect.top + rect.height / 2) return i;
+    // Re-read the list top each time so scrolling mid-drag is accounted for,
+    // then compare against the untransformed slots captured at drag start.
+    const listTop = drag.row.parentElement.getBoundingClientRect().top;
+    const y = clientY - listTop;
+
+    for (let i = 0; i < drag.slots.length; i += 1) {
+      const slot = drag.slots[i];
+      if (y < slot.top + slot.height / 2) return i;
     }
-    return rows.length - 1;
+    return drag.slots.length - 1;
   }
 
   function handlePointerDown(event, index) {
@@ -206,6 +254,7 @@
       if (!drag?.active) return;
     }
 
+    dragOffsetY = event.clientY - drag.startY;
     draggedOverIndex = targetIndexFor(event.clientY);
   }
 
@@ -424,7 +473,9 @@
                 data-task-id={task.id}
                 class:completed={task.completed}
                 class:dragging={draggedItem === index}
-                class:drag-over={draggedOverIndex === index && draggedItem !== index}
+                class:drag-settling={draggedItem !== null && draggedItem !== index}
+                style={rowStyle(index)}
+                animate:flip={{ duration: 220, easing: cubicOut }}
                 in:fly={{ y: -10, duration: 300, delay: index * 30, easing: cubicOut }}
                 out:fly={{ x: 30, opacity: 0, duration: 250, delay: index * 20, easing: cubicOut }}
                 onpointerdown={(e) => handlePointerDown(e, index)}
