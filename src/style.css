@@ -701,3 +701,80 @@ html {
   scroll-behavior: smooth;
 }
 
+
+/* Shown only after something is removed, and only long enough to act on.
+   It carries a real button because Cmd/Ctrl+Z does not exist on a phone,
+   so on touch this is the only way back. */
+.undo-toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: calc(100vw - 32px);
+  padding: 12px 12px 12px 18px;
+  border-radius: 12px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.16),
+    0 4px 8px rgba(0, 0, 0, 0.08);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+html.dark .undo-toast {
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.55),
+    0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.undo-message {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.undo-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent-text);
+  cursor: pointer;
+  transition: background-color 200ms ease;
+}
+
+.undo-action:hover {
+  background-color: var(--hover);
+}
+
+/* Teaching the shortcut is the point, so it only shows where one exists. */
+.undo-key {
+  font-family: var(--font-family);
+  font-size: 12px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+@media (pointer: coarse) {
+  .undo-key {
+    display: none;
+  }
+
+  .undo-action {
+    min-height: 44px;
+  }
+}

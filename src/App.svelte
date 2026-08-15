@@ -62,6 +62,7 @@
     if (index === -1) return;
     undoStack.push({ type: 'delete', task: tasks[index], index });
     setTasks(taskOps.deleteTask(tasks, id));
+    showUndo('Task deleted');
   }
 
   function clearCompleted() {
@@ -74,6 +75,7 @@
     if (removed.length === 0) return;
     undoStack.push({ type: 'clearCompleted', removed });
     setTasks(taskOps.clearCompleted(tasks));
+    showUndo(removed.length === 1 ? '1 completed task cleared' : `${removed.length} completed tasks cleared`);
   }
 
   const viewingToday = $derived(selectedKey === todayKey);
@@ -129,9 +131,35 @@
     tasks = moveTaskToDay(storage, selectedKey, destination, taskId);
   }
 
+  /**
+   * Undo used to be reachable only by Cmd/Ctrl+Z, which nothing announced and
+   * which does not exist on a phone at all. This is the one moment it is worth
+   * saying something: right after work disappears. It carries the shortcut too,
+   * so a keyboard user learns it once, here, rather than from a README.
+   */
+  let undoNotice = $state(null);
+  let undoNoticeTimer = null;
+
+  const UNDO_NOTICE_MS = 7000;
+  const shortcutLabel = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+    ? '\u2318Z'
+    : 'Ctrl+Z';
+
+  function showUndo(message) {
+    undoNotice = message;
+    clearTimeout(undoNoticeTimer);
+    undoNoticeTimer = setTimeout(() => { undoNotice = null; }, UNDO_NOTICE_MS);
+  }
+
+  function dismissUndo() {
+    clearTimeout(undoNoticeTimer);
+    undoNotice = null;
+  }
+
   function undo() {
     const entry = undoStack.pop();
     if (entry) setTasks(applyUndo(tasks, entry));
+    dismissUndo();
   }
 
   function toggleTheme() {
@@ -736,3 +764,12 @@
     </div>
   </main>
 </div>
+
+{#if undoNotice}
+  <div class="undo-toast" role="status" aria-live="polite" transition:fly={{ y: reduceMotion ? 0 : 12, duration: reduceMotion ? 0 : 200, easing: cubicOut }}>
+    <span class="undo-message">{undoNotice}</span>
+    <button class="undo-action" onclick={undo}>
+      Undo <kbd class="undo-key">{shortcutLabel}</kbd>
+    </button>
+  </div>
+{/if}
