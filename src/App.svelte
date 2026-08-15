@@ -13,14 +13,21 @@
   const storage = createStorage();
   const undoStack = createUndoStack();
 
-  let tasks = $state([]);
+  // Storage is synchronous, so the first render can already have the real list.
+  // Loading in onMount instead meant one frame of the empty state on every
+  // launch — previously hidden behind the splash screen, and very visible once
+  // that went away.
+  storage.migrateLegacyKeys();
+  const bootNow = new Date();
+
+  let tasks = $state(rollover(storage, bootNow));
   let newTask = $state('');
   // Seeded from the class the pre-paint script in index.html already set, so
   // there is one source of truth and no post-mount correction to flash.
   let darkMode = $state(document.documentElement.classList.contains('dark'));
   let isInitialized = false;
-  let todayKey = $state(toKey(new Date()));
-  let selectedKey = $state(toKey(new Date()));
+  let todayKey = $state(toKey(bootNow));
+  let selectedKey = $state(toKey(bootNow));
   let draggedItem = $state(null);
   let draggedOverIndex = $state(null);
   let midnightTimer = null;
@@ -286,8 +293,8 @@
   });
 
   onMount(() => {
-    storage.migrateLegacyKeys();
-    runRollover();
+    // State is already loaded above; this only opens the write path and lets
+    // the theme effect run once without persisting on a plain page load.
     isInitialized = true;
 
     // Four triggers, because no single one is sufficient. The timer covers a
