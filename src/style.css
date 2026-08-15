@@ -619,9 +619,27 @@ html.dark .data-status.error {
     transform: translate(-50%, -50%);
   }
 
-  .day-switch,
+  /* 46 rather than 44, because the switch's own padding and border eat into
+     the height its buttons actually get. The theme toggle follows so the two
+     stay level in the header. */
+  .day-switch {
+    height: 46px;
+    padding: 0;
+  }
+
+  .day-option {
+    border-radius: 7px;
+  }
+
   .theme-toggle {
-    height: 44px;
+    height: 46px;
+  }
+
+  /* Grows the tappable area of the task text to 44px without moving the text
+     itself, so it stays aligned with the checkbox on the first line. */
+  .task-text {
+    padding-block: 10px;
+    margin-block: -10px;
   }
 
   .clear-completed,
@@ -703,13 +721,26 @@ html.dark .data-status.error {
   }
 }
 
+/* Every control, listed once. The previous version named a handful by hand
+   and had already gone stale: it still pointed at .today-btn, which no
+   longer exists, while five newer controls had no focus ring at all. */
 .checkbox:focus-visible,
-.delete-btn:focus-visible,
+.row-btn:focus-visible,
+.task-text:focus-visible,
+.task-edit:focus-visible,
 .theme-toggle:focus-visible,
-.today-btn:focus-visible,
-.clear-completed:focus-visible {
+.day-option:focus-visible,
+.clear-completed:focus-visible,
+.data-link:focus-visible,
+.undo-action:focus-visible,
+.carried-dismiss:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Hidden controls cannot show a focus ring, so reveal them when tabbed to. */
+.row-btn:focus-visible {
+  opacity: 1;
 }
 
 html {
