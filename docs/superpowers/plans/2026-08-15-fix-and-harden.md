@@ -731,7 +731,7 @@ export function msUntilNextMidnight(now) {
 
 `listTaskKeys` already filters to well-formed ISO keys, so the `< todayKey` string comparison is safe — and sortable keys are exactly why the format changed. Building next midnight from local calendar parts keeps it DST-correct: on a spring-forward day the interval is genuinely 23 hours, and this returns 23 hours.
 
-Note the empty-carry case: when every prior day held only completed tasks, `carried` is empty but the prior keys are still deleted, and today's list is rewritten unchanged. That is intended — pruning is the point.
+Note the empty-carry case: when every prior day held only completed tasks, the prior keys are still deleted but today's key is left alone — writing an empty array would create a key for nothing, and rollover runs on every focus and visibility change. Persist only when something actually moved.
 
 - [ ] **Step 4: Run to verify pass**
 
