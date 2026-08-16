@@ -345,6 +345,8 @@ html.dark .task-item.dragging {
 .checkbox {
   width: 24px;
   height: 24px;
+  /* Pads the 24px box out to the 32px first-line band set by the row buttons. */
+  margin-block: 4px;
   border: 2px solid var(--border);
   border-radius: 6px;
   background: transparent;
@@ -386,7 +388,11 @@ html.dark .task-item.dragging {
   text-align: left;
   background: transparent;
   border: none;
-  padding: 0;
+  padding-inline: 0;
+  /* Pads the 24px line box out to the 32px first-line band the row buttons
+     set, so the text centres against the checkbox. Declared as a longhand
+     because a `padding: 0` shorthand here would reset it. */
+  padding-block: 4px;
   font-family: inherit;
   cursor: text;
   font-size: 16px;
@@ -608,6 +614,14 @@ html.dark .data-status.error {
 }
 
 @media (pointer: coarse) {
+  /* Smaller drawn box, same 44px target from the overlay below, and the
+     margin keeps it in the 32px first-line band. */
+  .row-btn {
+    width: 28px;
+    height: 28px;
+    margin-block: 2px;
+  }
+
   .checkbox::after,
   .row-btn::after {
     content: '';
@@ -639,7 +653,7 @@ html.dark .data-status.error {
      itself, so it stays aligned with the checkbox on the first line. */
   .task-text {
     padding-block: 10px;
-    margin-block: -10px;
+    margin-block: -6px;
   }
 
   .clear-completed,
@@ -664,37 +678,59 @@ html.dark .data-status.error {
 
 @media (max-width: 768px) {
   .header {
-    padding: calc(16px + env(safe-area-inset-top)) 24px 16px;
+    padding: calc(12px + env(safe-area-inset-top)) 20px 12px;
   }
 
+  /* One row rather than two. Stacking cost a whole row of height on the
+     screen with the least of it to spare. */
   .header-content {
-    flex-direction: column;
-    gap: 16px;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-section {
+    gap: 10px;
+    min-width: 0;
   }
 
   .header-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .container {
-    padding: 0 24px;
-  }
-
-  .content-header {
-    flex-direction: column;
-    align-items: flex-start;
+    margin-left: auto;
     gap: 8px;
   }
 
-  .section-title {
-    font-size: 28px;
+  .main {
+    padding-top: 24px;
   }
 
+  .container {
+    padding: 0 20px;
+  }
+
+  /* Wraps rather than stacking unconditionally, so the date only drops to
+     its own line when it genuinely cannot share one. */
+  .content-header {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 12px;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 22px;
+  }
+
+  .task-input {
+    padding: 16px 18px;
+  }
+
+  /* Both row actions stay visible on touch because there is no hover to
+     reveal them, and at this width they were eating 44% of the row. Tighter
+     gaps and padding hand that back to the text. */
   .task-item {
-    padding: 20px;
-    min-height: 48px;
+    padding: 14px 16px;
+    gap: 10px;
   }
 
   .task-input {
@@ -706,6 +742,21 @@ html.dark .data-status.error {
 @media (max-width: 480px) {
   .header {
     padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+  }
+
+  /* The wordmark is what stops the header fitting on one line here: it needs
+     422px of row and there are 343. The logo carries the identity, and the
+     installed app already has the name under its icon. Kept in the
+     accessibility tree so the page still has its h1. */
+  .app-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 
   .container {
