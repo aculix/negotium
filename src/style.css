@@ -280,6 +280,9 @@ html.dark .day-option.selected {
 
 .task-item {
   display: flex;
+  /* The row is a drag handle, so pressing and moving across it should carry
+     the card rather than highlight words. */
+  user-select: none;
   align-items: flex-start;
   gap: 16px;
   padding: 16px 20px;
@@ -385,16 +388,9 @@ html.dark .task-item.dragging {
 .task-text {
   flex: 1;
   min-width: 0;
-  text-align: left;
-  background: transparent;
-  border: none;
-  padding-inline: 0;
   /* Pads the 24px line box out to the 32px first-line band the row buttons
-     set, so the text centres against the checkbox. Declared as a longhand
-     because a `padding: 0` shorthand here would reset it. */
+     set, so the text centres against the checkbox. */
   padding-block: 4px;
-  font-family: inherit;
-  cursor: text;
   font-size: 16px;
   /* 24px line box, the same height as the checkbox, so the two align on the
      first line without nudging either. */
@@ -414,6 +410,8 @@ html.dark .task-item.dragging {
 .task-edit {
   flex: 1;
   min-width: 0;
+  /* The one place text stays selectable, so it can still be copied out. */
+  user-select: text;
   font-family: inherit;
   font-size: 16px;
   line-height: 1.5;
@@ -424,6 +422,15 @@ html.dark .task-item.dragging {
   padding: 0 6px;
   margin: 0 -7px;
   outline: none;
+}
+
+/* One group rather than three loose children, so the gaps between the actions
+   do not multiply across the row on a narrow screen. */
+.row-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .row-btn {
@@ -441,6 +448,11 @@ html.dark .task-item.dragging {
   opacity: 0;
   transition: all 200ms ease;
   flex-shrink: 0;
+}
+
+.edit-btn:hover {
+  background-color: var(--hover);
+  color: var(--accent);
 }
 
 .defer-btn:hover {
@@ -617,9 +629,13 @@ html.dark .data-status.error {
   /* Smaller drawn box, same 44px target from the overlay below, and the
      margin keeps it in the 32px first-line band. */
   .row-btn {
-    width: 28px;
-    height: 28px;
-    margin-block: 2px;
+    width: 26px;
+    height: 26px;
+    margin-block: 3px;
+  }
+
+  .row-actions {
+    gap: 0;
   }
 
   .checkbox::after,
@@ -777,7 +793,6 @@ html.dark .data-status.error {
    longer exists, while five newer controls had no focus ring at all. */
 .checkbox:focus-visible,
 .row-btn:focus-visible,
-.task-text:focus-visible,
 .task-edit:focus-visible,
 .theme-toggle:focus-visible,
 .day-option:focus-visible,

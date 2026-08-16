@@ -90,7 +90,7 @@ The date, storage, rollover, task and undo logic lives in `src/lib/` as plain mo
 ### Managing Tasks
 - **Add a task**: Type in the input field and press Enter
 - **Complete a task**: Click the checkbox next to the task
-- **Edit a task**: Click its text. Enter saves, Escape cancels, and clicking away saves too
+- **Edit a task**: Click the pencil on the task. Enter saves, Escape cancels, and clicking away saves too
 - **Delete a task**: Click the delete icon on the task (it shows on hover, and is always visible on touch), or press `Delete` with the task focused
 - **Undo**: An Undo button appears for a few seconds after a task is deleted, cleared or moved to another day. `Cmd/Ctrl+Z` does the same. Either way the task returns to where it was
 - **Move a task to Tomorrow**: Click the arrow on the task, or press `Alt+→`. From Tomorrow, the arrow points back and `Alt+←` returns it to Today
