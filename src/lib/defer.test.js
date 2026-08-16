@@ -81,3 +81,39 @@ describe('moveTaskToDay', () => {
     expect(storage.loadTasks(TODAY)).toEqual([])
   })
 })
+
+describe('moveTaskToDay with an insert position', () => {
+  it('inserts at the given index rather than appending', () => {
+    const storage = setup({ [TOMORROW]: [task('x')], [TODAY]: [task('a'), task('b'), task('c')] })
+    moveTaskToDay(storage, TOMORROW, TODAY, 'x', 1)
+    expect(storage.loadTasks(TODAY).map(t => t.id)).toEqual(['a', 'x', 'b', 'c'])
+  })
+
+  it('puts a task back at the front', () => {
+    const storage = setup({ [TOMORROW]: [task('x')], [TODAY]: [task('a')] })
+    moveTaskToDay(storage, TOMORROW, TODAY, 'x', 0)
+    expect(storage.loadTasks(TODAY).map(t => t.id)).toEqual(['x', 'a'])
+  })
+
+  it('clamps an index past the end', () => {
+    const storage = setup({ [TOMORROW]: [task('x')], [TODAY]: [task('a')] })
+    moveTaskToDay(storage, TOMORROW, TODAY, 'x', 99)
+    expect(storage.loadTasks(TODAY).map(t => t.id)).toEqual(['a', 'x'])
+  })
+
+  it('still appends when no index is given', () => {
+    const storage = setup({ [TOMORROW]: [task('x')], [TODAY]: [task('a')] })
+    moveTaskToDay(storage, TOMORROW, TODAY, 'x')
+    expect(storage.loadTasks(TODAY).map(t => t.id)).toEqual(['a', 'x'])
+  })
+
+  it('round-trips a defer back to where it started', () => {
+    const storage = setup({ [TODAY]: [task('a'), task('b'), task('c')] })
+    moveTaskToDay(storage, TODAY, TOMORROW, 'b')
+    expect(storage.loadTasks(TODAY).map(t => t.id)).toEqual(['a', 'c'])
+
+    moveTaskToDay(storage, TOMORROW, TODAY, 'b', 1)
+    expect(storage.loadTasks(TODAY).map(t => t.id)).toEqual(['a', 'b', 'c'])
+    expect(storage.loadTasks(TOMORROW)).toEqual([])
+  })
+})

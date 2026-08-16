@@ -14,7 +14,7 @@ Built with Svelte for speed and simplicity. No overwhelming features, no endless
 
 ### Core Functionality
 - ✅ **Add, complete, and delete tasks** with smooth animations
-- ↩️ **Undo** - Deleted something by mistake? An Undo button appears, and `Cmd/Ctrl+Z` works too. The task returns to its original position
+- ↩️ **Undo** - Deleted or moved something by mistake? An Undo button appears, and `Cmd/Ctrl+Z` works too. The task returns to its original position
 - 📅 **Today & Tomorrow lists** - Plan ahead with separate task lists
 - 🔄 **Unfinished work carries over** - When a new day begins, tasks you didn't finish move to Today; completed ones are cleared away
 - ✏️ **Edit a task** - Fix a typo without deleting and retyping it
@@ -92,7 +92,7 @@ The date, storage, rollover, task and undo logic lives in `src/lib/` as plain mo
 - **Complete a task**: Click the checkbox next to the task
 - **Edit a task**: Click its text. Enter saves, Escape cancels, and clicking away saves too
 - **Delete a task**: Click the delete icon on the task (it shows on hover, and is always visible on touch), or press `Delete` with the task focused
-- **Undo a delete**: An Undo button appears for a few seconds after anything is removed. `Cmd/Ctrl+Z` does the same. Either way the task returns to where it was
+- **Undo**: An Undo button appears for a few seconds after a task is deleted, cleared or moved to another day. `Cmd/Ctrl+Z` does the same. Either way the task returns to where it was
 - **Move a task to Tomorrow**: Click the arrow on the task, or press `Alt+→`. From Tomorrow, the arrow points back and `Alt+←` returns it to Today
 - **Reorder tasks**: Drag with a mouse, long-press then drag on touch, or focus a task and press `Alt+↑`/`Alt+↓`
 - **Clear input**: Press Escape while the input is focused
@@ -130,7 +130,7 @@ Import only ever adds. Tasks already present are left alone, so importing the sa
 - **Escape**: Clear input field (when input is focused)
 - **Space/Enter**: Toggle task completion (when a task's checkbox is focused)
 - **Delete**: Delete the focused task
-- **Cmd/Ctrl+Z**: Undo the last delete or clear-completed
+- **Cmd/Ctrl+Z**: Undo the last delete, clear-completed, or move between days
 - **Alt+↑ / Alt+↓**: Move the focused task up or down
 - **Alt+→ / Alt+←**: Send the focused task to Tomorrow, or bring it back to Today
 

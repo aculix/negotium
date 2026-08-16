@@ -139,8 +139,21 @@
    *  which day you are looking at, so one control covers both. */
   function deferTask(taskId) {
     cancelEdit();
-    const destination = viewingToday ? tomorrowKey() : todayKey;
-    tasks = moveTaskToDay(storage, selectedKey, destination, taskId);
+
+    const index = tasks.findIndex(task => task.id === taskId);
+    if (index === -1) return;
+
+    const movingToTomorrow = viewingToday;
+    const from = selectedKey;
+    const to = movingToTomorrow ? tomorrowKey() : todayKey;
+
+    tasks = moveTaskToDay(storage, from, to, taskId);
+
+    // A task vanishing from the list with nothing said about it reads as a
+    // delete, especially right after the app has taught you that deletes come
+    // with a way back. It gets the same treatment.
+    undoStack.push({ type: 'move', id: taskId, from, to, index });
+    showUndo(movingToTomorrow ? 'Moved to Tomorrow' : 'Moved to Today');
   }
 
   /**
@@ -170,8 +183,19 @@
 
   function undo() {
     const entry = undoStack.pop();
-    if (entry) setTasks(applyUndo(tasks, entry));
     dismissUndo();
+    if (!entry) return;
+
+    // A move spans two days, so it cannot be expressed as an edit to the one
+    // list applyUndo works on. It is sent back to the row it came from, which
+    // is why the index was recorded.
+    if (entry.type === 'move') {
+      moveTaskToDay(storage, entry.to, entry.from, entry.id, entry.index);
+      tasks = storage.loadTasks(selectedKey);
+      return;
+    }
+
+    setTasks(applyUndo(tasks, entry));
   }
 
   function toggleTheme() {
